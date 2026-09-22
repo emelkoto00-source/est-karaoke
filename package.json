@@ -1,0 +1,18 @@
+{
+  "name": "est-karaoke-automation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "check": "node --check src/server.js && node --check src/roblox.js && node --check src/lyrics.js && node --check src/audio.js && node --check src/store.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "multer": "^2.0.2"
+  },
+  "description": "EST Karaoke live upload, synchronized lyrics, KTV queue and Roblox sync service"
+}
