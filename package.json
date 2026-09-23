@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js && node --check src/roblox.js && node --check src/lyrics.js && node --check src/audio.js && node --check src/store.js"
+    "check": "node --check src/server.js && node --check src/roblox.js && node --check src/lyrics.js && node --check src/audio.js && node --check src/store.js && node --check src/youtube.js && node --check src/video_upload.js && node --check src/separation.js && node --check src/reference_sync.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
