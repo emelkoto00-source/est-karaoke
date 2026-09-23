@@ -240,7 +240,14 @@ export async function downloadYoutubeKaraoke({
       '--no-playlist',
       '--no-warnings',
       '--no-part',
-      '-f', 'bv*[height<=720]+ba/b[height<=720]/b',
+      // Force AVC/H.264 for the karaoke VIDEO. Railway/OpenCV builds can
+      // fail on YouTube AV1 streams ("Missing Sequence Header" / no AV1
+      // hardware decoder). 360p format 18 remains a safe H.264 fallback and
+      // is still sufficient for lyric-highlight detection.
+      '-f', String(
+        process.env.YOUTUBE_KARAOKE_VIDEO_FORMAT ||
+        'bv*[vcodec^=avc1][height<=720]+ba[ext=m4a]/b[vcodec^=avc1][height<=720]/18'
+      ),
       '--merge-output-format', 'mp4',
       '-o', path.join(workDir, 'source.%(ext)s'),
       safeUrl,
@@ -249,7 +256,15 @@ export async function downloadYoutubeKaraoke({
       timeoutMs: 12 * 60 * 1000,
     });
   } catch (err) {
-    throw makeYoutubeError(err, Boolean(cookieFile));
+    const normalized = makeYoutubeError(err, Boolean(cookieFile));
+    if (/requested format is not available|format.*not available/i.test(normalized?.message || '')) {
+      throw new Error(
+        'YouTube did not expose a compatible H.264/AVC karaoke-video stream for this link. ' +
+        'EST intentionally avoids AV1 because Railway/OpenCV may not decode it reliably. ' +
+        'Try another upload of the same karaoke video, or use Video Upload instead.'
+      );
+    }
+    throw normalized;
   }
 
   const videoFile = await findDownloadedVideo(workDir);
