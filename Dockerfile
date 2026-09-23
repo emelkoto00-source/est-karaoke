@@ -12,8 +12,13 @@ RUN python3 -m venv /opt/demucs
 ENV DEMUCS_PYTHON=/opt/demucs/bin/python \
     DEMUCS_MODEL=htdemucs \
     DEMUCS_DEVICE=cpu \
+    DEMUCS_SEGMENT=7.0 \
     TORCH_HOME=/opt/demucs-models \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1
 
 COPY requirements-separation.txt /tmp/requirements-separation.txt
 
