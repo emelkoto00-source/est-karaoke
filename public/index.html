@@ -26,7 +26,7 @@
         <label>Playback speed<select id="speed"></select></label>
         <label>Upload account<select id="uploader"></select></label>
       </div>
-      <div class="notice">Lyrics are automatic. The backend asks your configured synchronized-lyrics provider using the title + artist, then converts the result into KTV highlight timing.</div>
+      <div class="notice">Lyrics are automatic. EST searches LRCLIB using the title + artist, reads synchronized line timestamps, then converts each line into progressive KTV highlight timing for review.</div>
       <button id="uploadBtn" class="primary full">Upload karaoke song</button>
       <div id="uploadError" class="error"></div>
     </div>
