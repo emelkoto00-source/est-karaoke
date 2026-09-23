@@ -12,7 +12,8 @@
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "pg": "^8.16.3"
   },
   "description": "EST Karaoke live upload, synchronized lyrics, KTV queue and Roblox sync service"
 }
