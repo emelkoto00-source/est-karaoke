@@ -462,6 +462,9 @@ app.patch('/api/jobs/:id/review', adminAuth, async (req, res) => {
     if (!artist) return res.status(400).json({ error: 'Artist cannot be empty.' });
     job.artist = artist;
   }
+  if (req.body.source != null) {
+    job.lyricsSource = cleanText(req.body.source, 160);
+  }
   if (req.body.speed != null) {
     if (!validSpeed(req.body.speed)) return res.status(400).json({ error: 'Invalid speed preset.' });
     job.speed = Number(req.body.speed);
@@ -472,7 +475,12 @@ app.patch('/api/jobs/:id/review', adminAuth, async (req, res) => {
     job.lyricOffset = Number(offset.toFixed(3));
   }
   await store.save();
-  res.json({ job: publicJob(job), lyrics: job.lyrics, lyricOffset: job.lyricOffset || 0 });
+  res.json({
+    job: publicJob(job),
+    lyrics: job.lyrics,
+    lyricOffset: job.lyricOffset || 0,
+    source: job.lyricsSource || '',
+  });
 });
 
 app.post('/api/jobs/:id/proceed', adminAuth, async (req, res) => {
@@ -491,12 +499,20 @@ app.post('/api/jobs/:id/proceed', adminAuth, async (req, res) => {
     job.lyricOffset = Number(finalOffset.toFixed(3));
   }
 
+  // The editable Source field is finalized atomically with the offset.
+  // Whatever is in Review when "Yes — add to KTV library" is clicked becomes
+  // the source label stored in the final EST KTV library entry.
+  if (req.body?.source != null) {
+    job.lyricsSource = cleanText(req.body.source, 160);
+  }
+
   job.stage = 'granting_access';
   job.error = undefined;
   await store.save();
   res.status(202).json({
     job: publicJob(job),
     lyricOffset: Number(job.lyricOffset) || 0,
+    source: job.lyricsSource || '',
   });
 
   finalizeIntoLibrary(job).catch(async err => {
