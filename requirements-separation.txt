@@ -2,3 +2,4 @@ demucs==4.0.1
 numpy<2
 yt-dlp[default]
 opencv-python-headless<4.11
+curl-cffi
