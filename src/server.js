@@ -175,6 +175,7 @@ app.get('/api/game/library', gameAuth, (req, res) => {
       AudioId: `rbxassetid://${song.assetId}`,
       Speed: Number(song.speed) || 1,
       Lyrics: Array.isArray(song.lyrics) ? song.lyrics : [],
+      LyricOffset: Number(song.lyricOffset) || 0,
       SourceUploader: song.sourceUploader,
       SourceCreatorId: song.sourceCreatorId,
       AddedAt: song.addedAt,
@@ -206,6 +207,7 @@ app.get('/api/jobs/:id/lyrics', adminAuth, (req, res) => {
     speed: job.speed,
     source: job.lyricsSource || '',
     lines: Array.isArray(job.lyrics) ? job.lyrics : [],
+    lyricOffset: Number(job.lyricOffset) || 0,
   });
 });
 
@@ -309,10 +311,24 @@ app.post('/api/jobs/:id/proceed', adminAuth, async (req, res) => {
   if (!job) return res.status(404).json({ error: 'Job not found.' });
   if (job.stage !== 'review') return res.status(409).json({ error: 'Review the song first.' });
   if (!Array.isArray(job.lyrics) || !job.lyrics.length) return res.status(409).json({ error: 'This song has no synchronized lyrics yet.' });
+
+  // Apply the exact offset from the final review action atomically.
+  // This avoids relying on an earlier PATCH request having already persisted.
+  if (req.body?.offset != null) {
+    const finalOffset = Number(req.body.offset);
+    if (!Number.isFinite(finalOffset) || finalOffset < -30 || finalOffset > 30) {
+      return res.status(400).json({ error: 'Offset must be between -30 and +30 seconds.' });
+    }
+    job.lyricOffset = Number(finalOffset.toFixed(3));
+  }
+
   job.stage = 'granting_access';
   job.error = undefined;
   await store.save();
-  res.status(202).json({ job: publicJob(job) });
+  res.status(202).json({
+    job: publicJob(job),
+    lyricOffset: Number(job.lyricOffset) || 0,
+  });
 
   finalizeIntoLibrary(job).catch(async err => {
     job.stage = 'access_required';
@@ -476,6 +492,7 @@ async function finalizeIntoLibrary(job) {
       speed: job.speed,
       assetId: job.asset.assetId,
       lyrics: shiftedLyrics(job),
+      lyricOffset: Number(job.lyricOffset) || 0,
       lyricsSource: job.lyricsSource,
       sourceUploaderId: job.uploaderProfile,
       sourceUploader: job.uploaderName,
@@ -493,6 +510,36 @@ async function finalizeIntoLibrary(job) {
   await cleanupJobFiles(job);
   await store.save();
 }
+
+async function reconcileFinalizedLyricOffsets() {
+  let changed = false;
+
+  for (const song of store.state.library) {
+    if (!song?.jobId) continue;
+
+    const job = store.state.jobs.find(item => item.id === song.jobId);
+    if (!job || !Array.isArray(job.lyrics) || !job.lyrics.length) continue;
+
+    const expectedOffset = Number(job.lyricOffset) || 0;
+    const storedOffset = Number(song.lyricOffset) || 0;
+
+    // Repair older library entries created before the final-offset fix.
+    // The original job keeps the provider lyrics + chosen offset, so we can
+    // safely rebuild the final shifted timing without another LRCLIB request.
+    if (Math.abs(expectedOffset - storedOffset) > 0.0005) {
+      song.lyrics = shiftedLyrics(job);
+      song.lyricOffset = expectedOffset;
+      changed = true;
+      console.log(`[lyrics] repaired library offset for ${song.number}: ${expectedOffset >= 0 ? '+' : ''}${expectedOffset}s`);
+    }
+  }
+
+  if (changed) await store.save();
+}
+
+reconcileFinalizedLyricOffsets().catch(err => {
+  console.error('[lyrics reconcile]', err);
+});
 
 // Resume jobs that were waiting before a deploy/restart.
 for (const job of store.state.jobs) {
