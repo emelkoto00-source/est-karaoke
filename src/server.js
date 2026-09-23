@@ -974,17 +974,38 @@ async function resolveLyricsForJob(job) {
 
 function shiftedLyrics(job) {
   const offset = Number(job.lyricOffset) || 0;
-  if (!offset) return job.lyrics;
-  return job.lyrics.map(line => ({
-    ...line,
-    start: Math.max(0, Number((line.start + offset).toFixed(3))),
-    end: Math.max(0, Number((line.end + offset).toFixed(3))),
-    words: (line.words || []).map(word => ({
-      ...word,
-      start: Math.max(0, Number((word.start + offset).toFixed(3))),
-      end: Math.max(0, Number((word.end + offset).toFixed(3))),
-    })),
-  }));
+  const lines = Array.isArray(job.lyrics) ? job.lyrics : [];
+
+  const shift = (value, fallback = 0) => {
+    const numeric = Number(value);
+    const base = Number.isFinite(numeric) ? numeric : fallback;
+    return Math.max(0, Number((base + offset).toFixed(3)));
+  };
+
+  return lines.map(line => {
+    const originalStart = Number(line?.start);
+    const originalEnd = Number(line?.end);
+    const safeStart = Number.isFinite(originalStart) ? originalStart : 0;
+    const safeEnd = Number.isFinite(originalEnd) ? originalEnd : safeStart;
+
+    return {
+      ...line,
+      start: shift(safeStart),
+      end: shift(safeEnd, safeStart),
+      words: (Array.isArray(line?.words) ? line.words : []).map(word => {
+        const wordStart = Number(word?.start);
+        const wordEnd = Number(word?.end);
+        const safeWordStart = Number.isFinite(wordStart) ? wordStart : safeStart;
+        const safeWordEnd = Number.isFinite(wordEnd) ? wordEnd : safeWordStart;
+
+        return {
+          ...word,
+          start: shift(safeWordStart),
+          end: shift(safeWordEnd, safeWordStart),
+        };
+      }),
+    };
+  });
 }
 
 async function finalizeIntoLibrary(job) {
@@ -996,34 +1017,44 @@ async function finalizeIntoLibrary(job) {
   job.asset.accessGrantedAt = Date.now();
   job.asset.accessHttpStatus = result?.status || 200;
 
+  const finalOffset = Number(job.lyricOffset) || 0;
+  const finalLyrics = shiftedLyrics(job);
+
   let song = store.state.library.find(item => item.jobId === job.id);
   if (!song) {
     song = {
       jobId: job.id,
       number: store.allocateSongNumber(),
-      title: job.title,
-      artist: job.artist,
-      speed: job.speed,
-      assetId: job.asset.assetId,
-      lyrics: shiftedLyrics(job),
-      lyricOffset: Number(job.lyricOffset) || 0,
-      lyricsSource: job.lyricsSource,
-      audioType: job.audioType || 'karaoke',
-      sourceType: job.sourceType || 'upload',
-      videoSyncOffset: Number(job.videoSyncOffset) || 0,
-      videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
-      separationModel: job.separationModel || null,
-      originalDuration: job.originalDuration || job.duration,
-      instrumentalDuration: job.instrumentalDuration || job.duration,
-      timelineDifferenceMs: Number(job.timelineDifferenceMs) || 0,
-      sourceUploaderId: job.uploaderProfile,
-      sourceUploader: job.uploaderName,
-      sourceCreatorId: job.uploaderCreatorId,
       addedAt: Date.now(),
-      estUniverseId: universeId,
     };
     store.state.library.unshift(song);
   }
+
+  // Always rewrite the final timing fields from the reviewed job. This makes
+  // the manual Global Lyric Offset authoritative even if access finalization is
+  // retried or a partially-created library row already exists.
+  Object.assign(song, {
+    title: job.title,
+    artist: job.artist,
+    speed: job.speed,
+    assetId: job.asset.assetId,
+    lyrics: finalLyrics,
+    lyricOffset: finalOffset,
+    lyricsSource: job.lyricsSource,
+    audioType: job.audioType || 'karaoke',
+    sourceType: job.sourceType || 'upload',
+    videoSyncOffset: Number(job.videoSyncOffset) || 0,
+    videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
+    separationModel: job.separationModel || null,
+    originalDuration: job.originalDuration || job.duration,
+    instrumentalDuration: job.instrumentalDuration || job.duration,
+    timelineDifferenceMs: Number(job.timelineDifferenceMs) || 0,
+    sourceUploaderId: job.uploaderProfile,
+    sourceUploader: job.uploaderName,
+    sourceCreatorId: job.uploaderCreatorId,
+    estUniverseId: universeId,
+    finalizedLyricOffsetAt: Date.now(),
+  });
 
   job.songNumber = song.number;
   job.stage = 'in_library';
