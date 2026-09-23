@@ -9,6 +9,7 @@ import crypto from 'node:crypto';
 import { JsonStore } from './store.js';
 import { normalizeForRoblox, probeDuration } from './audio.js';
 import { createInstrumentalFromOriginal } from './separation.js';
+import { downloadYoutubeKaraoke, analyzeKaraokeVideoSync } from './youtube.js';
 import { RobloxClient } from './roblox.js';
 import { resolveLyrics } from './lyrics.js';
 
@@ -19,12 +20,14 @@ const uploadDir = path.join(root, 'uploads');
 const processedDir = path.join(root, 'processed');
 const previewDir = path.join(root, 'previews');
 const separationDir = path.join(root, 'separation-work');
+const youtubeDir = path.join(root, 'youtube-work');
 const dataFile = path.join(root, 'data', 'state.json');
 await Promise.all([
   fs.mkdir(uploadDir, { recursive: true }),
   fs.mkdir(processedDir, { recursive: true }),
   fs.mkdir(previewDir, { recursive: true }),
   fs.mkdir(separationDir, { recursive: true }),
+  fs.mkdir(youtubeDir, { recursive: true }),
 ]);
 
 const store = new JsonStore(dataFile);
@@ -114,6 +117,14 @@ function publicJob(job) {
     artist: job.artist,
     speed: job.speed,
     audioType: job.audioType || 'karaoke',
+    sourceType: job.sourceType || 'upload',
+    videoSyncApplied: job.videoSyncApplied === true,
+    videoSyncOffset: Number(job.videoSyncOffset) || 0,
+    videoSyncSuggestedOffset: Number(job.videoSyncSuggestedOffset) || 0,
+    videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
+    videoSyncAnchors: Number(job.videoSyncAnchors) || 0,
+    youtubeVideoTitle: job.youtubeVideoTitle,
+    youtubeChannel: job.youtubeChannel,
     separationModel: job.separationModel,
     originalDuration: job.originalDuration,
     instrumentalDuration: job.instrumentalDuration,
@@ -151,6 +162,9 @@ app.get('/api/health', (req, res) => {
     originalAudioSeparation: true,
     separationProvider: 'Demucs',
     separationModel: process.env.DEMUCS_MODEL || 'htdemucs',
+    youtubeKaraokeImport: true,
+    videoSyncAssist: true,
+    videoSyncMethod: 'karaoke highlight CV + LRCLIB anchor alignment',
     gameSyncConfigured: Boolean(process.env.GAME_SYNC_TOKEN),
     speedPresets,
   });
@@ -220,6 +234,69 @@ app.get('/api/jobs/:id/lyrics', adminAuth, (req, res) => {
     source: job.lyricsSource || '',
     lines: Array.isArray(job.lyrics) ? job.lyrics : [],
     lyricOffset: Number(job.lyricOffset) || 0,
+    videoSyncApplied: job.videoSyncApplied === true,
+    videoSyncOffset: Number(job.videoSyncOffset) || 0,
+    videoSyncSuggestedOffset: Number(job.videoSyncSuggestedOffset) || 0,
+    videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
+    videoSyncAnchors: Number(job.videoSyncAnchors) || 0,
+    videoSyncReason: job.videoSyncReason || '',
+  });
+});
+
+app.post('/api/youtube-import', adminAuth, async (req, res) => {
+  const title = cleanText(req.body?.title, 100);
+  const artist = cleanText(req.body?.artist, 100);
+  const youtubeUrl = cleanText(req.body?.youtubeUrl, 1000);
+  const speed = Number(req.body?.speed);
+  const uploader = uploaderProfiles.get(
+    cleanText(req.body?.uploaderProfile, 20) || DEFAULT_UPLOADER_ID
+  );
+
+  if (!title || !artist) {
+    return res.status(400).json({ error: 'Title and artist are required.' });
+  }
+  if (!youtubeUrl) {
+    return res.status(400).json({ error: 'Paste a public YouTube karaoke video URL.' });
+  }
+  if (!validSpeed(speed)) {
+    return res.status(400).json({ error: 'Speed must be one of the 1.0×–2.9× presets.' });
+  }
+  if (!uploader) {
+    return res.status(400).json({ error: 'Unknown upload account.' });
+  }
+  if (!uploader.client.configured) {
+    return res.status(400).json({ error: `${uploader.name} is not configured.` });
+  }
+
+  const job = {
+    id: crypto.randomUUID(),
+    title,
+    artist,
+    speed,
+    audioType: 'karaoke',
+    sourceType: 'youtube',
+    youtubeUrl,
+    uploaderProfile: uploader.id,
+    uploaderName: uploader.name,
+    uploaderCreatorId: uploader.creatorId,
+    stage: 'video_fetching',
+    createdAt: Date.now(),
+    previewToken: crypto.randomBytes(24).toString('hex'),
+    asset: null,
+    lyrics: [],
+    lyricOffset: 0,
+  };
+
+  store.state.jobs.unshift(job);
+  await store.save();
+  res.status(202).json({ job: publicJob(job) });
+
+  processYoutubeImport(job).catch(async err => {
+    job.stage = 'failed';
+    job.error = err.message || String(err);
+    job.finishedAt = Date.now();
+    await cleanupJobFiles(job);
+    await store.save();
   });
 });
 
@@ -259,6 +336,7 @@ app.post('/api/uploads', adminAuth, upload.single('file'), async (req, res) => {
     artist,
     speed,
     audioType,
+    sourceType: 'upload',
     uploaderProfile: uploader.id,
     uploaderName: uploader.name,
     uploaderCreatorId: uploader.creatorId,
@@ -411,6 +489,133 @@ async function markApprovedReady(job) {
     return;
   }
   await resolveLyricsForJob(job);
+}
+
+async function processYoutubeImport(job) {
+  const client = getUploaderClient(job);
+  let workDir = null;
+
+  try {
+    job.stage = 'video_fetching';
+    job.error = undefined;
+    await store.save();
+
+    const downloaded = await downloadYoutubeKaraoke({
+      url: job.youtubeUrl,
+      workRoot: youtubeDir,
+      jobId: job.id,
+      ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+      ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
+    });
+
+    workDir = downloaded.workDir;
+    job.youtubeVideoTitle = downloaded.videoTitle;
+    job.youtubeChannel = downloaded.channel;
+    job.duration = Number(downloaded.duration.toFixed(3));
+    job.originalDuration = job.duration;
+    job.instrumentalDuration = job.duration;
+    job.timelineDifferenceMs = 0;
+    await store.save();
+
+    // We fetch LRCLIB before Roblox because the lyric-line timestamps are also
+    // the reference sequence used to estimate the karaoke video's added intro.
+    job.stage = 'video_lyrics';
+    job.lyricsError = undefined;
+    await store.save();
+
+    const lyricResult = await resolveLyrics({
+      title: job.title,
+      artist: job.artist,
+      duration: job.duration,
+    });
+
+    job.lyrics = lyricResult.lines;
+    job.lyricsSource = lyricResult.source;
+    job.lyricOffset = 0;
+    await store.save();
+
+    job.stage = 'video_sync';
+    await store.save();
+
+    const sync = await analyzeKaraokeVideoSync({
+      videoFile: downloaded.videoFile,
+      lyrics: job.lyrics,
+      workDir: downloaded.workDir,
+    });
+
+    job.videoSyncApplied = sync.applied === true;
+    job.videoSyncOffset = sync.applied ? Number(sync.offset) || 0 : 0;
+    job.videoSyncSuggestedOffset = Number(sync.suggestedOffset ?? sync.offset) || 0;
+    job.videoSyncConfidence = Number(sync.confidence) || 0;
+    job.videoSyncAnchors = Number(sync.matchedAnchors) || 0;
+    job.videoSyncDetectedEvents = Number(sync.detectedEvents) || 0;
+    job.videoSyncReason = cleanText(sync.reason, 500);
+
+    // Auto-fill Global Lyric Offset only when several independent highlight
+    // anchors support the same timeline shift. Review still lets the user
+    // adjust/reset this value normally.
+    if (job.videoSyncApplied) {
+      job.lyricOffset = Number(job.videoSyncOffset.toFixed(3));
+    }
+    await store.save();
+
+    job.stage = 'processing';
+    await store.save();
+
+    const normalized = await normalizeForRoblox({
+      input: downloaded.audioFile,
+      outDir: processedDir,
+      jobId: job.id,
+      ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+      ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
+      bitrate: process.env.OUTPUT_BITRATE || '192k',
+    });
+
+    job.processedDuration = Number(normalized.duration.toFixed(3));
+    job.processedFile = path.basename(normalized.file);
+    await copyPreview(normalized.file, job);
+    await store.save();
+
+    job.stage = 'uploading';
+    await store.save();
+
+    const uploadResult = await client.uploadAudio(
+      normalized.file,
+      `${job.title} - ${job.artist}`,
+      1,
+    );
+
+    job.asset = {
+      assetId: String(uploadResult.assetId),
+      operationId: uploadResult.operationId || null,
+      status: uploadResult.moderation?.status || 'pending',
+      moderationLabel: uploadResult.moderation?.label || 'Pending review',
+      accessStatus: 'pending',
+    };
+    await store.save();
+
+    if (job.asset.status === 'approved') {
+      await markApprovedReady(job);
+      return;
+    }
+
+    if (job.asset.status === 'declined') {
+      job.stage = 'declined';
+      job.error = job.asset.moderationLabel || 'Roblox moderation declined this audio.';
+      job.finishedAt = Date.now();
+      await cleanupJobFiles(job);
+      await store.save();
+      return;
+    }
+
+    job.stage = 'moderating';
+    await store.save();
+    monitorModeration(job).catch(err => console.error('[moderation]', err));
+  } finally {
+    if (workDir) {
+      await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
 }
 
 async function processUpload(job, inputPath) {
@@ -609,6 +814,9 @@ async function finalizeIntoLibrary(job) {
       lyricOffset: Number(job.lyricOffset) || 0,
       lyricsSource: job.lyricsSource,
       audioType: job.audioType || 'karaoke',
+      sourceType: job.sourceType || 'upload',
+      videoSyncOffset: Number(job.videoSyncOffset) || 0,
+      videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
       separationModel: job.separationModel || null,
       originalDuration: job.originalDuration || job.duration,
       instrumentalDuration: job.instrumentalDuration || job.duration,
