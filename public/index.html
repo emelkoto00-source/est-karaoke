@@ -6,7 +6,7 @@
 <title>EST Karaoke — Karaoke Desk</title>
 <style>
 :root{--bg:#080912;--panel:#111322;--panel2:#171a2c;--line:#292e49;--text:#f7f8ff;--muted:#9da4bf;--pink:#ff4db8;--blue:#5aa8ff;--green:#63e6be;--yellow:#ffd166;--red:#ff6b6b}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#17204a 0,transparent 35%),radial-gradient(circle at 90% 0,#3b1239 0,transparent 30%),var(--bg);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}.wrap{max-width:1200px;margin:auto;padding:26px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--pink),var(--blue));display:grid;place-items:center;font-size:24px;box-shadow:0 12px 40px #ff4db82c}.brand h1{font-size:19px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.status{border:1px solid var(--line);background:#0d1020;border-radius:999px;padding:9px 13px;color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.hero{margin:12px 0 22px}.hero h2{font-size:clamp(34px,5vw,64px);line-height:.98;letter-spacing:-.05em;margin:0;max-width:900px}.hero h2 span{background:linear-gradient(90deg,var(--pink),#b57cff,var(--blue));-webkit-background-clip:text;color:transparent}.hero p{color:var(--muted);max-width:760px;margin-top:14px}.tabs{display:flex;gap:8px;margin:24px 0}.tab{background:#0d1020;border:1px solid var(--line);color:var(--muted);padding:10px 14px;border-radius:10px;cursor:pointer}.tab.active{background:var(--panel2);color:var(--text);border-color:#475075}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.card{background:linear-gradient(180deg,#15182a,#0f1120);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 50px #0005}.card h3{margin:0 0 4px;font-size:18px}.sub{color:var(--muted);font-size:12px}.modepicker{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.mode{position:relative;border:1px solid #303654;background:#0b0e1b;border-radius:14px;padding:14px;cursor:pointer;min-height:116px}.mode input{position:absolute;opacity:0;pointer-events:none}.mode strong{display:block;font-size:15px;color:var(--text)}.mode span{display:block;color:var(--muted);font-size:11px;margin-top:6px;line-height:1.45}.mode.active{border-color:#8c6cff;background:linear-gradient(180deg,#1b1830,#101322);box-shadow:0 0 0 1px #8c6cff55 inset}.modebadge{display:inline-block!important;width:auto!important;margin:0 0 8px!important;padding:3px 7px;border-radius:999px;background:#25213e;color:#d8ccff!important;font-size:9px!important;font-weight:800;letter-spacing:.05em}.drop{border:1px dashed #4a5074;background:#0c0f1d;border-radius:14px;padding:20px;margin-top:14px}.drop input{width:100%}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}label{color:var(--muted);font-size:12px}input,select{display:block;width:100%;margin-top:6px;background:#0b0e1b;border:1px solid #303654;border-radius:10px;color:var(--text);min-height:44px;padding:10px 12px;font-size:15px}button{font:inherit}.primary,.secondary,.danger{border-radius:10px;min-height:44px;padding:10px 14px;font-weight:700;cursor:pointer}.primary{border:0;background:linear-gradient(90deg,var(--pink),#8c6cff,var(--blue));color:white}.secondary{background:#171a2c;border:1px solid #343a5b;color:var(--text)}.danger{background:#2b141d;border:1px solid #673044;color:#ff9aae}.full{width:100%;margin-top:14px}.queue{display:flex;flex-direction:column;gap:10px;margin-top:14px;max-height:640px;overflow:auto}.job{border:1px solid var(--line);border-radius:13px;background:#0b0e1b;padding:13px}.jobtop{display:flex;justify-content:space-between;gap:10px}.jobtitle{font-weight:800}.pill{font-size:10px;padding:4px 7px;border:1px solid #3c4364;border-radius:999px;color:var(--muted);white-space:nowrap}.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:12px}.step{font-size:9px;color:#5f6684;text-align:center}.step i{display:block;height:3px;border-radius:999px;background:#242943;margin-bottom:5px}.step.done{color:#b8c1e5}.step.done i{background:linear-gradient(90deg,var(--pink),var(--blue))}.step.now{color:white}.step.now i{background:var(--yellow)}.msg{margin-top:9px;color:var(--muted);font-size:12px}.jobactions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.jobactions button{min-height:34px;padding:6px 10px;font-size:12px}.hidden{display:none!important}.library{display:grid;gap:10px}.song{border:1px solid var(--line);border-radius:13px;background:#0c0f1d;padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center}.num{font-weight:900;color:var(--yellow);font-variant-numeric:tabular-nums}.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.show{display:flex}.modalbox{width:min(920px,100%);max-height:94vh;overflow:auto;background:#0f1220;border:1px solid #333a59;border-radius:20px;padding:18px;box-shadow:0 30px 100px #000}.reviewhead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.approved{color:var(--green);font-size:12px}.playerbox{margin-top:14px;background:#080a14;border:1px solid #2a304b;border-radius:14px;padding:16px}audio{width:100%}.ktv{margin-top:16px;background:linear-gradient(180deg,#091736,#090b1c);border:1px solid #243e75;border-radius:14px;min-height:190px;padding:22px;display:flex;flex-direction:column;justify-content:center;text-align:center;overflow:hidden}.ktvline{position:relative;font-size:clamp(24px,4vw,42px);font-weight:900;line-height:1.22;letter-spacing:-.02em;text-shadow:0 2px 0 #000,0 0 12px #000;margin:6px 0}.base{color:white}.overlaywrap{position:absolute;inset:0;overflow:hidden;width:100%;clip-path:inset(0 100% 0 0);will-change:clip-path;pointer-events:none}.overlay{position:absolute;inset:0;width:100%;white-space:nowrap;color:#4aa7ff;text-shadow:0 2px 0 #001c45,0 0 10px #3d8cff}.nextline{font-size:clamp(20px,3vw,34px);font-weight:800;color:#fff;opacity:.92;text-shadow:0 2px 0 #000}.reviewgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.mini{border:1px solid var(--line);background:#0b0e1b;border-radius:10px;padding:10px}.mini span{display:block;color:var(--muted);font-size:10px}.mini b{display:block;margin-top:4px}.offset{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#17204a 0,transparent 35%),radial-gradient(circle at 90% 0,#3b1239 0,transparent 30%),var(--bg);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}.wrap{max-width:1200px;margin:auto;padding:26px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--pink),var(--blue));display:grid;place-items:center;font-size:24px;box-shadow:0 12px 40px #ff4db82c}.brand h1{font-size:19px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.status{border:1px solid var(--line);background:#0d1020;border-radius:999px;padding:9px 13px;color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.hero{margin:12px 0 22px}.hero h2{font-size:clamp(34px,5vw,64px);line-height:.98;letter-spacing:-.05em;margin:0;max-width:900px}.hero h2 span{background:linear-gradient(90deg,var(--pink),#b57cff,var(--blue));-webkit-background-clip:text;color:transparent}.hero p{color:var(--muted);max-width:760px;margin-top:14px}.tabs{display:flex;gap:8px;margin:24px 0}.tab{background:#0d1020;border:1px solid var(--line);color:var(--muted);padding:10px 14px;border-radius:10px;cursor:pointer}.tab.active{background:var(--panel2);color:var(--text);border-color:#475075}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.card{background:linear-gradient(180deg,#15182a,#0f1120);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 50px #0005}.card h3{margin:0 0 4px;font-size:18px}.sub{color:var(--muted);font-size:12px}.modepicker{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.mode{position:relative;border:1px solid #303654;background:#0b0e1b;border-radius:14px;padding:14px;cursor:pointer;min-height:116px}.mode input{position:absolute;opacity:0;pointer-events:none}.mode strong{display:block;font-size:15px;color:var(--text)}.mode span{display:block;color:var(--muted);font-size:11px;margin-top:6px;line-height:1.45}.mode.active{border-color:#8c6cff;background:linear-gradient(180deg,#1b1830,#101322);box-shadow:0 0 0 1px #8c6cff55 inset}.modebadge{display:inline-block!important;width:auto!important;margin:0 0 8px!important;padding:3px 7px;border-radius:999px;background:#25213e;color:#d8ccff!important;font-size:9px!important;font-weight:800;letter-spacing:.05em}.drop{border:1px dashed #4a5074;background:#0c0f1d;border-radius:14px;padding:20px;margin-top:14px}.drop input{width:100%}.referencebox{border-style:solid;border-color:#58478d;background:linear-gradient(180deg,#15142a,#0c0f1d)}.reftoggle{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-weight:800;cursor:pointer}.reftoggle input{width:18px;height:18px;min-height:18px;margin:2px 0 0;accent-color:#8c6cff}.refcontent{margin-top:12px;padding-top:12px;border-top:1px solid #343153}.refbadge{display:inline-block;padding:3px 7px;border-radius:999px;background:#2a2247;color:#d8ccff;font-size:9px;font-weight:900;letter-spacing:.05em;margin-bottom:8px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}label{color:var(--muted);font-size:12px}input,select{display:block;width:100%;margin-top:6px;background:#0b0e1b;border:1px solid #303654;border-radius:10px;color:var(--text);min-height:44px;padding:10px 12px;font-size:15px}button{font:inherit}.primary,.secondary,.danger{border-radius:10px;min-height:44px;padding:10px 14px;font-weight:700;cursor:pointer}.primary{border:0;background:linear-gradient(90deg,var(--pink),#8c6cff,var(--blue));color:white}.secondary{background:#171a2c;border:1px solid #343a5b;color:var(--text)}.danger{background:#2b141d;border:1px solid #673044;color:#ff9aae}.full{width:100%;margin-top:14px}.queue{display:flex;flex-direction:column;gap:10px;margin-top:14px;max-height:640px;overflow:auto}.job{border:1px solid var(--line);border-radius:13px;background:#0b0e1b;padding:13px}.jobtop{display:flex;justify-content:space-between;gap:10px}.jobtitle{font-weight:800}.pill{font-size:10px;padding:4px 7px;border:1px solid #3c4364;border-radius:999px;color:var(--muted);white-space:nowrap}.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:12px}.step{font-size:9px;color:#5f6684;text-align:center}.step i{display:block;height:3px;border-radius:999px;background:#242943;margin-bottom:5px}.step.done{color:#b8c1e5}.step.done i{background:linear-gradient(90deg,var(--pink),var(--blue))}.step.now{color:white}.step.now i{background:var(--yellow)}.msg{margin-top:9px;color:var(--muted);font-size:12px}.jobactions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.jobactions button{min-height:34px;padding:6px 10px;font-size:12px}.hidden{display:none!important}.library{display:grid;gap:10px}.song{border:1px solid var(--line);border-radius:13px;background:#0c0f1d;padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center}.num{font-weight:900;color:var(--yellow);font-variant-numeric:tabular-nums}.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.show{display:flex}.modalbox{width:min(920px,100%);max-height:94vh;overflow:auto;background:#0f1220;border:1px solid #333a59;border-radius:20px;padding:18px;box-shadow:0 30px 100px #000}.reviewhead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.approved{color:var(--green);font-size:12px}.playerbox{margin-top:14px;background:#080a14;border:1px solid #2a304b;border-radius:14px;padding:16px}audio{width:100%}.ktv{margin-top:16px;background:linear-gradient(180deg,#091736,#090b1c);border:1px solid #243e75;border-radius:14px;min-height:190px;padding:22px;display:flex;flex-direction:column;justify-content:center;text-align:center;overflow:hidden}.ktvline{position:relative;font-size:clamp(24px,4vw,42px);font-weight:900;line-height:1.22;letter-spacing:-.02em;text-shadow:0 2px 0 #000,0 0 12px #000;margin:6px 0}.base{color:white}.overlaywrap{position:absolute;inset:0;overflow:hidden;width:100%;clip-path:inset(0 100% 0 0);will-change:clip-path;pointer-events:none}.overlay{position:absolute;inset:0;width:100%;white-space:nowrap;color:#4aa7ff;text-shadow:0 2px 0 #001c45,0 0 10px #3d8cff}.nextline{font-size:clamp(20px,3vw,34px);font-weight:800;color:#fff;opacity:.92;text-shadow:0 2px 0 #000}.reviewgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.mini{border:1px solid var(--line);background:#0b0e1b;border-radius:10px;padding:10px}.mini span{display:block;color:var(--muted);font-size:10px}.mini b{display:block;margin-top:4px}.offset{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
 .offsetentry{display:flex;align-items:center;gap:6px;background:#0b0e1b;border:1px solid #343a5b;border-radius:10px;padding:0 10px;height:44px}
 .offsetentry input{width:92px;min-height:36px;margin:0;padding:6px 8px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;border:0;background:transparent}
 .offsetentry span{color:var(--muted);font-weight:700}
@@ -55,6 +55,12 @@
       <div class="drop"><label id="fileLabel">Original studio audio<input id="file" type="file" accept="audio/*"></label></div>
       <div id="youtubeDrop" class="drop hidden"><label>YouTube karaoke video URL<input id="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..."></label><div class="sub" style="margin-top:8px">Use a public YouTube karaoke video you are authorized to download/process. Playlists are not accepted.</div></div>
       <div id="videoDrop" class="drop hidden"><label>Karaoke video file<input id="videoFile" type="file" accept="video/*,.mp4,.mov,.mkv,.webm,.avi,.m4v,.mpeg,.mpg,.wmv,.flv,.ts,.mts,.m2ts"></label><div class="sub" style="margin-top:8px">Common FFmpeg-readable video formats are supported. Default maximum upload is 750 MB.</div></div>
+      <div id="referenceSyncBox" class="drop referencebox hidden">
+        <label class="reftoggle"><input id="enableReferenceSync" type="checkbox"><span><span class="refbadge">ENHANCED SYNC</span><br>Compare against the original studio track</span></label>
+        <div class="sub" style="margin-top:7px">Optional. EST removes the lead vocal from the original reference, compares its accompaniment against the karaoke track, and remaps LRCLIB timing to the karaoke file before Roblox moderation.</div>
+        <div id="referenceUploadFields" class="refcontent hidden"><label>Original studio track (with lead vocal)<input id="referenceOriginalFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.flac,.ogg,.opus,.wma"></label><div class="sub" style="margin-top:8px">Use the real/original release that the LRCLIB timing should match — not another karaoke track.</div></div>
+        <div id="referenceYoutubeFields" class="refcontent hidden"><label>Original studio YouTube link<input id="referenceYoutubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=... (original song)"></label><div class="sub" style="margin-top:8px">EST downloads the original song audio only for comparison, then compares it against the karaoke-video audio.</div></div>
+      </div>
       <div class="fields">
         <label>Title<input id="title" placeholder="Song title"></label>
         <label>Artist<input id="artist" placeholder="Artist"></label>
@@ -65,7 +71,7 @@
       <button id="uploadBtn" class="primary full">Upload original & create karaoke</button>
       <div id="uploadError" class="error"></div>
     </div>
-    <div class="card"><h3>Upload queue</h3><div class="sub">Original: AI Karaoke → Lyrics → Roblox → Review → Access → KTV<br>Karaoke: Roblox → Moderation → Lyrics → Review → Access → KTV<br>YouTube: Video → Lyrics → Highlight Sync → Roblox → Review → KTV<br>Video Upload: Video → Lyrics → Highlight Sync → Roblox → Review → KTV</div><div id="queue" class="queue"></div></div>
+    <div class="card"><h3>Upload queue</h3><div class="sub">Original: AI Karaoke → Lyrics → Roblox → Review → Access → KTV<br>Karaoke: optional Original Reference → AI Timeline Sync → Roblox → Review → KTV<br>YouTube: Karaoke Link + optional Original Link → AI Timeline Sync → Video Check → Roblox → KTV<br>Video Upload: Video + optional Original Track → AI Timeline Sync → Video Check → Roblox → KTV</div><div id="queue" class="queue"></div></div>
   </section>
 
   <section id="libraryTab" class="card hidden"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>KTV Library</h3><div class="sub">Songs currently available to Roblox karaoke servers.</div></div><button id="refreshLibrary" class="secondary">Refresh</button></div><div id="library" class="library" style="margin-top:14px"></div></section>
@@ -92,7 +98,7 @@
 (()=>{
 const $=s=>document.querySelector(s);let token=sessionStorage.getItem('ktvAdmin')||'';let health=null;let currentJob=null;let lyrics=[];let offset=0;let jobsTimer=null;let previewRaf=0;let previewLastLine=Number.NaN;let previewLastProgress=-1;
 const stageOrder=['uploading','moderating','lyrics','review','granting_access','in_library'];
-const stageLabel={video_preparing:'Reading uploaded karaoke video',video_fetching:'Downloading public karaoke video',video_lyrics:'Getting LRCLIB synchronized lyrics',video_sync:'Examining karaoke highlight timing',separating:'Creating karaoke with AI vocal separation',lyrics_preflight:'Matching LRCLIB to the original timeline',processing:'Preparing Roblox audio',uploading:'Uploading to Roblox',moderating:'Waiting for Roblox moderation',lyrics:'Getting automatic synchronized lyrics',lyrics_needed:'Lyrics need retry',review:'Ready for KTV review',granting_access:'Granting KTV experience access',access_required:'KTV access needs retry',in_library:'In KTV library',declined:'Roblox declined this audio',discarded:'Discarded',failed:'Failed'};
+const stageLabel={video_preparing:'Reading uploaded karaoke video',video_fetching:'Downloading public karaoke video',reference_fetching:'Downloading original studio reference',reference_separating:'AI is removing vocals from the original reference',reference_lyrics:'Matching LRCLIB to the original studio timeline',reference_sync:'Comparing original accompaniment against the karaoke timeline',video_lyrics:'Getting LRCLIB synchronized lyrics',video_sync:'Cross-checking visible karaoke highlight timing',separating:'Creating karaoke with AI vocal separation',lyrics_preflight:'Matching LRCLIB to the original timeline',processing:'Preparing Roblox audio',uploading:'Uploading to Roblox',moderating:'Waiting for Roblox moderation',lyrics:'Getting automatic synchronized lyrics',lyrics_needed:'Lyrics need retry',review:'Ready for KTV review',granting_access:'Granting KTV experience access',access_required:'KTV access needs retry',in_library:'In KTV library',declined:'Roblox declined this audio',discarded:'Discarded',failed:'Failed'};
 function authHeaders(json=false){const h={Authorization:`Bearer ${token}`};if(json)h['Content-Type']='application/json';return h}
 async function api(url,opts={}){opts.headers={...(opts.headers||{}),...authHeaders(Boolean(opts.body)&&!(opts.body instanceof FormData))};const r=await fetch(url,opts);let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||`Request failed (${r.status})`);return d}
 function setLogin(show,msg=''){$('#login').style.display=show?'grid':'none';$('#loginError').textContent=msg}
@@ -111,33 +117,116 @@ function refreshAudioMode(){
   $('#videoDrop').classList.toggle('hidden',!isVideo);
   $('#file').closest('.drop').classList.toggle('hidden',isYoutube||isVideo);
 
+  const canReference=type==='karaoke'||type==='youtube'||type==='video';
+  $('#referenceSyncBox').classList.toggle('hidden',!canReference);
+  if(!canReference) $('#enableReferenceSync').checked=false;
+  refreshReferenceSyncFields();
+
   if(type==='original'){
     $('#fileLabel').childNodes[0].nodeValue='Original studio audio';
     $('#uploadBtn').textContent='Upload original & create karaoke';
     $('#modeNotice').textContent='Original Audio: EST creates a vocal-removed instrumental without adding an intro, trimming silence, or changing tempo. It verifies the instrumental timeline, then searches LRCLIB. You can still adjust Global Lyric Offset during Review.';
   }else if(type==='youtube'){
     $('#uploadBtn').textContent='Import YouTube karaoke & auto-sync';
-    $('#modeNotice').textContent='YouTube Karaoke Link: EST imports the video audio, gets LRCLIB lyrics, analyzes repeated visible karaoke-highlight starts, and auto-fills Global Lyric Offset only when multiple timing anchors agree. Review and manual offset remain available.';
+    $('#modeNotice').textContent='YouTube Karaoke Link: paste the karaoke link normally. Optional Enhanced Sync adds a second original-song link; EST compares both audio timelines first, then uses video highlight analysis as a second check before Roblox moderation.';
   }else if(type==='video'){
     $('#uploadBtn').textContent='Upload karaoke video & auto-sync';
-    $('#modeNotice').textContent='Video Upload: EST extracts the video audio, gets LRCLIB lyrics, analyzes repeated visible karaoke-highlight starts, and auto-fills Global Lyric Offset only when multiple timing anchors agree. Review and manual offset remain available.';
+    $('#modeNotice').textContent='Video Upload: optional Enhanced Sync lets you add the original studio track. EST compares the original accompaniment against the extracted karaoke audio, remaps LRCLIB timing, then verifies it against visible lyric highlights.';
   }else{
     $('#fileLabel').childNodes[0].nodeValue='Karaoke / instrumental audio';
     $('#uploadBtn').textContent='Upload karaoke song';
-    $('#modeNotice').textContent='Karaoke Audio: EST uses the normal existing flow. The file is normalized for Roblox, synchronized lyrics are attached automatically, and Global Lyric Offset remains available during Review.';
+    $('#modeNotice').textContent='Karaoke Audio: optional Enhanced Sync lets you add the original studio track. EST compares both timelines and remaps LRCLIB timing before the karaoke file is uploaded to Roblox. Without a reference, the existing flow stays unchanged.';
   }
 }
+function refreshReferenceSyncFields(){
+  const type=selectedAudioType();
+  const enabled=$('#enableReferenceSync').checked && (type==='karaoke'||type==='youtube'||type==='video');
+  $('#referenceUploadFields').classList.toggle('hidden',!(enabled&&(type==='karaoke'||type==='video')));
+  $('#referenceYoutubeFields').classList.toggle('hidden',!(enabled&&type==='youtube'));
+}
+$('#enableReferenceSync')?.addEventListener('change',refreshReferenceSyncFields);
 $('#audioModePicker')?.addEventListener('change',refreshAudioMode);
 async function boot(){try{health=await fetch('/api/health').then(r=>r.json());$('#connection').textContent=health.ok?'Connected to KTV backend':'Backend unavailable';$('#connection').classList.toggle('ok',health.ok);renderUploaders();await loadJobs();await loadLibrary();setLogin(false);if(jobsTimer)clearInterval(jobsTimer);jobsTimer=setInterval(loadJobs,3000)}catch(e){setLogin(true,e.message)}}
 $('#loginBtn').onclick=()=>{token=$('#password').value;sessionStorage.setItem('ktvAdmin',token);boot().catch(e=>setLogin(true,e.message))};
 $('.tabs')?.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));const lib=b.dataset.tab==='library';$('#uploadTab').classList.toggle('hidden',lib);$('#libraryTab').classList.toggle('hidden',!lib);if(lib)loadLibrary()});
-$('#uploadBtn').onclick=async()=>{const type=selectedAudioType();$('#uploadError').textContent='';try{$('#uploadBtn').disabled=true;if(type==='youtube'){const youtubeUrl=$('#youtubeUrl').value.trim();if(!youtubeUrl){throw new Error('Paste a YouTube karaoke video URL.')}await api('/api/youtube-import',{method:'POST',body:JSON.stringify({youtubeUrl,title:$('#title').value,artist:$('#artist').value,speed:Number($('#speed').value),uploaderProfile:$('#uploader').value})});$('#youtubeUrl').value='';}else if(type==='video'){const f=$('#videoFile').files[0];if(!f)throw new Error('Choose a karaoke video file.');const form=new FormData();form.append('file',f);form.append('title',$('#title').value);form.append('artist',$('#artist').value);form.append('speed',$('#speed').value);form.append('uploaderProfile',$('#uploader').value);await api('/api/video-import',{method:'POST',body:form,headers:{Authorization:`Bearer ${token}`}});$('#videoFile').value='';}else{const f=$('#file').files[0];if(!f)throw new Error('Choose an audio file.');const form=new FormData();form.append('file',f);form.append('title',$('#title').value);form.append('artist',$('#artist').value);form.append('speed',$('#speed').value);form.append('uploaderProfile',$('#uploader').value);form.append('audioType',type);await api('/api/uploads',{method:'POST',body:form,headers:{Authorization:`Bearer ${token}`}});$('#file').value='';}await loadJobs()}catch(e){$('#uploadError').textContent=e.message}finally{$('#uploadBtn').disabled=false}};
+$('#uploadBtn').onclick=async()=>{
+  const type=selectedAudioType();
+  const enhanced=$('#enableReferenceSync').checked && type!=='original';
+  $('#uploadError').textContent='';
+  try{
+    $('#uploadBtn').disabled=true;
+
+    if(type==='youtube'){
+      const youtubeUrl=$('#youtubeUrl').value.trim();
+      if(!youtubeUrl)throw new Error('Paste a YouTube karaoke video URL.');
+      const referenceYoutubeUrl=enhanced?$('#referenceYoutubeUrl').value.trim():'';
+      if(enhanced&&!referenceYoutubeUrl)throw new Error('Enhanced Sync is on. Paste the original studio YouTube link too.');
+      await api('/api/youtube-import',{
+        method:'POST',
+        body:JSON.stringify({
+          youtubeUrl,
+          referenceYoutubeUrl,
+          title:$('#title').value,
+          artist:$('#artist').value,
+          speed:Number($('#speed').value),
+          uploaderProfile:$('#uploader').value
+        })
+      });
+      $('#youtubeUrl').value='';
+      $('#referenceYoutubeUrl').value='';
+    }else if(type==='video'){
+      const f=$('#videoFile').files[0];
+      if(!f)throw new Error('Choose a karaoke video file.');
+      const referenceFile=enhanced?$('#referenceOriginalFile').files[0]:null;
+      if(enhanced&&!referenceFile)throw new Error('Enhanced Sync is on. Choose the original studio audio too.');
+      const form=new FormData();
+      form.append('file',f);
+      if(referenceFile)form.append('referenceOriginal',referenceFile);
+      form.append('title',$('#title').value);
+      form.append('artist',$('#artist').value);
+      form.append('speed',$('#speed').value);
+      form.append('uploaderProfile',$('#uploader').value);
+      await api('/api/video-import',{method:'POST',body:form,headers:{Authorization:`Bearer ${token}`}});
+      $('#videoFile').value='';
+      $('#referenceOriginalFile').value='';
+    }else{
+      const f=$('#file').files[0];
+      if(!f)throw new Error('Choose an audio file.');
+      const referenceFile=(type==='karaoke'&&enhanced)?$('#referenceOriginalFile').files[0]:null;
+      if(type==='karaoke'&&enhanced&&!referenceFile)throw new Error('Enhanced Sync is on. Choose the original studio audio too.');
+      const form=new FormData();
+      form.append('file',f);
+      if(referenceFile)form.append('referenceOriginal',referenceFile);
+      form.append('title',$('#title').value);
+      form.append('artist',$('#artist').value);
+      form.append('speed',$('#speed').value);
+      form.append('uploaderProfile',$('#uploader').value);
+      form.append('audioType',type);
+      await api('/api/uploads',{method:'POST',body:form,headers:{Authorization:`Bearer ${token}`}});
+      $('#file').value='';
+      $('#referenceOriginalFile').value='';
+    }
+
+    $('#enableReferenceSync').checked=false;
+    refreshReferenceSyncFields();
+    await loadJobs();
+  }catch(e){
+    $('#uploadError').textContent=e.message;
+  }finally{
+    $('#uploadBtn').disabled=false;
+  }
+};
 function jobStages(job){
   if(job.sourceType==='youtube'||job.sourceType==='video'){
-    return [['video','Video'],['lyrics','Lyrics'],['sync','Highlight Sync'],['roblox','Roblox'],['review','Review'],['ktv','KTV']];
+    return job.referenceSyncRequested
+      ? [['video','Source'],['reference','Original AI'],['lyrics','Lyrics'],['sync','Video Check'],['roblox','Roblox'],['ktv','KTV']]
+      : [['video','Video'],['lyrics','Lyrics'],['sync','Highlight Sync'],['roblox','Roblox'],['review','Review'],['ktv','KTV']];
   }
   if(job.audioType==='original'){
     return [['separation','AI Karaoke'],['lyrics','Lyrics'],['roblox','Roblox'],['review','Review'],['access','Access'],['ktv','KTV']];
+  }
+  if(job.referenceSyncRequested){
+    return [['reference','Original AI'],['lyrics','Lyrics'],['roblox','Roblox'],['review','Review'],['access','Access'],['ktv','KTV']];
   }
   return [['uploading','Upload'],['moderating','Moderation'],['lyrics','Lyrics'],['review','Review'],['granting_access','Access'],['in_library','KTV']];
 }
@@ -165,23 +254,37 @@ function originalStepState(job,key){
 }
 function youtubeStepState(job,key){
   const stage=job.stage;
-  const videoDone=!['video_fetching','video_preparing'].includes(stage);
-  const lyricsDone=Boolean(job.lyricLineCount>0)||['video_sync','processing','uploading','moderating','review','granting_access','access_required','in_library'].includes(stage);
-  const syncDone=['processing','uploading','moderating','review','granting_access','access_required','in_library'].includes(stage);
+  const refStages=['reference_fetching','reference_separating','reference_sync'];
+  const lyricsStages=['reference_lyrics','video_lyrics'];
+  const afterSync=['processing','uploading','moderating','review','granting_access','access_required','in_library'];
   const robloxDone=Boolean(job.asset)||['review','granting_access','access_required','in_library'].includes(stage);
-  const reviewDone=['granting_access','access_required','in_library'].includes(stage);
 
-  if(key==='video') return (stage==='video_fetching'||stage==='video_preparing')?'now':videoDone?'done':'';
-  if(key==='lyrics') return stage==='video_lyrics'?'now':lyricsDone?'done':'';
-  if(key==='sync') return stage==='video_sync'?'now':syncDone?'done':'';
+  if(key==='video') return ['video_fetching','video_preparing'].includes(stage)?'now':stage!=='failed'?'done':'';
+  if(key==='reference'){
+    if(refStages.includes(stage))return 'now';
+    return (job.referenceSyncRequested && (Boolean(job.referenceSyncReason)||lyricsStages.includes(stage)||stage==='video_sync'||afterSync.includes(stage)))?'done':'';
+  }
+  if(key==='lyrics') return lyricsStages.includes(stage)?'now':(Boolean(job.lyricLineCount)||stage==='video_sync'||afterSync.includes(stage))?'done':'';
+  if(key==='sync') return stage==='video_sync'?'now':afterSync.includes(stage)?'done':'';
   if(key==='roblox') return ['processing','uploading','moderating'].includes(stage)?'now':robloxDone?'done':'';
-  if(key==='review') return stage==='review'?'now':reviewDone?'done':'';
-  if(key==='ktv') return ['granting_access','access_required'].includes(stage)?'now':stage==='in_library'?'done':'';
+  if(key==='review') return stage==='review'?'now':['granting_access','access_required','in_library'].includes(stage)?'done':'';
+  if(key==='ktv') return ['review','granting_access','access_required'].includes(stage)?'now':stage==='in_library'?'done':'';
+  return '';
+}
+function referenceUploadStepState(job,key){
+  const stage=job.stage;
+  if(key==='reference')return ['reference_separating','reference_sync'].includes(stage)?'now':(Boolean(job.referenceSyncReason)||['reference_lyrics','processing','uploading','moderating','review','granting_access','access_required','in_library'].includes(stage))?'done':'';
+  if(key==='lyrics')return stage==='reference_lyrics'?'now':(Boolean(job.lyricLineCount)||['processing','uploading','moderating','review','granting_access','access_required','in_library'].includes(stage))?'done':'';
+  if(key==='roblox')return ['processing','uploading','moderating'].includes(stage)?'now':Boolean(job.asset)||['review','granting_access','access_required','in_library'].includes(stage)?'done':'';
+  if(key==='review')return stage==='review'?'now':['granting_access','access_required','in_library'].includes(stage)?'done':'';
+  if(key==='access')return ['granting_access','access_required'].includes(stage)?'now':stage==='in_library'?'done':'';
+  if(key==='ktv')return stage==='in_library'?'now':'';
   return '';
 }
 function stepState(job,key){
   if(job.sourceType==='youtube'||job.sourceType==='video')return youtubeStepState(job,key);
   if(job.audioType==='original')return originalStepState(job,key);
+  if(job.referenceSyncRequested)return referenceUploadStepState(job,key);
   const map={processing:0,uploading:0,moderating:1,lyrics:2,lyrics_needed:2,review:3,granting_access:4,access_required:4,in_library:5};
   const at=map[job.stage]??-1;
   const idx=['uploading','moderating','lyrics','review','granting_access','in_library'].indexOf(key);
@@ -194,6 +297,13 @@ function renderJob(job){
   let conversion='';
   if(job.audioType==='original'&&job.timelineDifferenceMs!=null){
     conversion=` • timeline Δ ${Number(job.timelineDifferenceMs).toFixed(0)}ms`;
+  }
+  if(job.referenceSyncRequested){
+    if(job.referenceSyncApplied){
+      conversion+=` • original-sync ${Math.round(Number(job.referenceSyncConfidence||0)*100)}% • ${Number(job.referenceSyncAnchors||0)} anchors • base ${Number(job.referenceSyncGlobalOffset)>=0?'+':''}${Number(job.referenceSyncGlobalOffset||0).toFixed(2)}s`;
+    }else if(job.referenceSyncReason){
+      conversion+=` • original-sync not auto-applied`;
+    }
   }
   if(job.sourceType==='youtube'||job.sourceType==='video'){
     if(job.videoSyncApplied){
@@ -233,11 +343,19 @@ async function openReview(job){
   $('#reviewArtist').textContent=d.artist;
   $('#rSpeed').textContent=`${Number(d.speed).toFixed(1)}×`;
   $('#rLines').textContent=`${lyrics.length} lines`;
-  const syncInfo=d.videoSyncApplied
-    ?`Video sync: ${Number(d.videoSyncOffset)>=0?'+':''}${Number(d.videoSyncOffset).toFixed(2)}s • ${Math.round(Number(d.videoSyncConfidence||0)*100)}% • ${Number(d.videoSyncAnchors||0)} anchors`
-    :'';
+  const syncParts=[];
+  if(d.referenceSyncRequested){
+    syncParts.push(d.referenceSyncApplied
+      ?`Original-track sync: ${Math.round(Number(d.referenceSyncConfidence||0)*100)}% • ${Number(d.referenceSyncAnchors||0)} anchors • base ${Number(d.referenceSyncGlobalOffset)>=0?'+':''}${Number(d.referenceSyncGlobalOffset||0).toFixed(2)}s • pitch ${Number(d.referenceSyncPitchShift||0)>=0?'+':''}${Number(d.referenceSyncPitchShift||0)} st`
+      :`Original-track sync: not auto-applied${d.referenceSyncReason?` — ${d.referenceSyncReason}`:''}`);
+  }
+  if(d.videoSyncApplied){
+    syncParts.push(`Video check: ${Number(d.videoSyncOffset)>=0?'+':''}${Number(d.videoSyncOffset).toFixed(2)}s • ${Math.round(Number(d.videoSyncConfidence||0)*100)}% • ${Number(d.videoSyncAnchors||0)} anchors`);
+  }else if(d.videoSyncReason){
+    syncParts.push(`Video check: ${d.videoSyncReason}`);
+  }
   $('#rSource').value=d.source||'';
-  $('#rSourceMeta').textContent=syncInfo;
+  $('#rSourceMeta').textContent=syncParts.join(' | ');
   $('#rDuration').textContent=fmt(job.duration);
 
   const audio=$('#previewAudio');
