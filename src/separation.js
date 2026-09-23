@@ -18,9 +18,18 @@ function run(bin, args, { cwd } = {}) {
     });
 
     child.on('error', reject);
-    child.on('close', code => {
+    child.on('close', (code, signal) => {
       if (code === 0) return resolve(stderr);
-      reject(new Error(`${bin} exited ${code}: ${stderr.slice(-5000)}`));
+
+      const detail = signal
+        ? `${bin} was killed by ${signal}`
+        : `${bin} exited with code ${code}`;
+
+      const hint = signal === 'SIGKILL'
+        ? ' This usually means the container ran out of memory while Demucs/PyTorch was processing the song.'
+        : '';
+
+      reject(new Error(`${detail}.${hint}${stderr ? `\n${stderr.slice(-5000)}` : ''}`));
     });
   });
 }
@@ -81,6 +90,14 @@ async function separateNow({
     '-n', model,
     '--two-stems=vocals',
     '-d', device,
+
+    // Railway-safe settings. One worker prevents parallel stem chunks from
+    // multiplying PyTorch memory usage. A shorter segment keeps peak working
+    // memory lower while preserving the exact source timeline.
+    '-j', '1',
+    '--shifts', '1',
+    '--segment', process.env.DEMUCS_SEGMENT || '7.0',
+
     '--out', demucsOut,
     prepared,
   ]);
