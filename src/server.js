@@ -7,7 +7,8 @@ import fs from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import { JsonStore } from './store.js';
-import { normalizeForRoblox } from './audio.js';
+import { normalizeForRoblox, probeDuration } from './audio.js';
+import { createInstrumentalFromOriginal } from './separation.js';
 import { RobloxClient } from './roblox.js';
 import { resolveLyrics } from './lyrics.js';
 
@@ -17,11 +18,13 @@ const publicDir = path.join(root, 'public');
 const uploadDir = path.join(root, 'uploads');
 const processedDir = path.join(root, 'processed');
 const previewDir = path.join(root, 'previews');
+const separationDir = path.join(root, 'separation-work');
 const dataFile = path.join(root, 'data', 'state.json');
 await Promise.all([
   fs.mkdir(uploadDir, { recursive: true }),
   fs.mkdir(processedDir, { recursive: true }),
   fs.mkdir(previewDir, { recursive: true }),
+  fs.mkdir(separationDir, { recursive: true }),
 ]);
 
 const store = new JsonStore(dataFile);
@@ -110,6 +113,11 @@ function publicJob(job) {
     title: job.title,
     artist: job.artist,
     speed: job.speed,
+    audioType: job.audioType || 'karaoke',
+    separationModel: job.separationModel,
+    originalDuration: job.originalDuration,
+    instrumentalDuration: job.instrumentalDuration,
+    timelineDifferenceMs: job.timelineDifferenceMs,
     uploaderProfile: job.uploaderProfile,
     uploaderName: job.uploaderName,
     stage: job.stage,
@@ -140,6 +148,9 @@ app.get('/api/health', (req, res) => {
     estUniverseConfigured: Boolean(String(process.env.EST_UNIVERSE_ID || '').trim()),
     lyricsConfigured: true,
     lyricsProvider: 'LRCLIB',
+    originalAudioSeparation: true,
+    separationProvider: 'Demucs',
+    separationModel: process.env.DEMUCS_MODEL || 'htdemucs',
     gameSyncConfigured: Boolean(process.env.GAME_SYNC_TOKEN),
     speedPresets,
   });
@@ -176,6 +187,7 @@ app.get('/api/game/library', gameAuth, (req, res) => {
       Speed: Number(song.speed) || 1,
       Lyrics: Array.isArray(song.lyrics) ? song.lyrics : [],
       LyricOffset: Number(song.lyricOffset) || 0,
+      AudioType: song.audioType || 'karaoke',
       SourceUploader: song.sourceUploader,
       SourceCreatorId: song.sourceCreatorId,
       AddedAt: song.addedAt,
@@ -212,11 +224,17 @@ app.get('/api/jobs/:id/lyrics', adminAuth, (req, res) => {
 });
 
 app.post('/api/uploads', adminAuth, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Choose a karaoke audio file.' });
+  if (!req.file) return res.status(400).json({ error: 'Choose an audio file.' });
   const title = cleanText(req.body.title, 100);
   const artist = cleanText(req.body.artist, 100);
   const speed = Number(req.body.speed);
+  const audioType = cleanText(req.body.audioType, 20).toLowerCase() || 'karaoke';
   const uploader = uploaderProfiles.get(cleanText(req.body.uploaderProfile, 20) || DEFAULT_UPLOADER_ID);
+
+  if (!['original', 'karaoke'].includes(audioType)) {
+    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    return res.status(400).json({ error: 'Audio type must be Original Audio or Karaoke Audio.' });
+  }
 
   if (!title || !artist) {
     await fs.rm(req.file.path, { force: true }).catch(() => {});
@@ -240,10 +258,11 @@ app.post('/api/uploads', adminAuth, upload.single('file'), async (req, res) => {
     title,
     artist,
     speed,
+    audioType,
     uploaderProfile: uploader.id,
     uploaderName: uploader.name,
     uploaderCreatorId: uploader.creatorId,
-    stage: 'processing',
+    stage: audioType === 'original' ? 'separating' : 'processing',
     originalName: req.file.originalname,
     createdAt: Date.now(),
     previewToken: crypto.randomBytes(24).toString('hex'),
@@ -354,27 +373,118 @@ async function copyPreview(processedFile, job) {
   job.previewFile = name;
 }
 
+async function prefetchLyricsForOriginal(job) {
+  job.stage = 'lyrics_preflight';
+  job.lyricsError = undefined;
+  await store.save();
+
+  try {
+    const result = await resolveLyrics({
+      title: job.title,
+      artist: job.artist,
+      duration: job.duration,
+    });
+
+    job.lyrics = result.lines;
+    job.lyricsSource = result.source;
+    job.lyricOffset = 0;
+    job.lyricsPrefetched = true;
+    job.lyricsError = undefined;
+    await store.save();
+  } catch (err) {
+    // Do not throw away a successful instrumental conversion just because
+    // LRCLIB did not match on the first attempt. Roblox processing can still
+    // continue, and the normal retry-lyrics flow remains available afterward.
+    job.lyrics = [];
+    job.lyricsPrefetched = false;
+    job.lyricsError = err.message || String(err);
+    await store.save();
+  }
+}
+
+async function markApprovedReady(job) {
+  if (Array.isArray(job.lyrics) && job.lyrics.length) {
+    job.stage = 'review';
+    job.reviewReadyAt = Date.now();
+    job.error = undefined;
+    await store.save();
+    return;
+  }
+  await resolveLyricsForJob(job);
+}
+
 async function processUpload(job, inputPath) {
   const client = getUploaderClient(job);
+  let separationWorkDir = null;
+
   try {
+    let sourceForRoblox = inputPath;
+
+    if (job.audioType === 'original') {
+      job.stage = 'separating';
+      job.error = undefined;
+      await store.save();
+
+      const separated = await createInstrumentalFromOriginal({
+        input: inputPath,
+        workRoot: separationDir,
+        jobId: job.id,
+        ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+        ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
+      });
+
+      separationWorkDir = separated.workDir;
+      sourceForRoblox = separated.file;
+      job.separationModel = separated.model;
+      job.originalDuration = Number(separated.originalDuration.toFixed(3));
+      job.instrumentalDuration = Number(separated.instrumentalDuration.toFixed(3));
+      job.timelineDifferenceMs = separated.timelineDifferenceMs;
+
+      // LRCLIB matching should use the ORIGINAL recording duration, because
+      // that is the timeline the synced lyrics are normally authored against.
+      job.duration = job.originalDuration;
+      await store.save();
+
+      // For original uploads, try LRCLIB immediately after the timeline-safe
+      // instrumental is created, as requested.
+      await prefetchLyricsForOriginal(job);
+    }
+
     job.stage = 'processing';
     await store.save();
+
     const normalized = await normalizeForRoblox({
-      input: inputPath,
+      input: sourceForRoblox,
       outDir: processedDir,
       jobId: job.id,
       ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
       ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
       bitrate: process.env.OUTPUT_BITRATE || '192k',
     });
-    job.duration = Number(normalized.duration.toFixed(3));
+
+    // Karaoke uploads keep the existing behavior. For AI-separated originals,
+    // preserve the original source duration as the lyric timeline authority.
+    if (job.audioType !== 'original') {
+      job.duration = Number(normalized.duration.toFixed(3));
+      job.originalDuration = job.duration;
+      job.instrumentalDuration = job.duration;
+      job.timelineDifferenceMs = 0;
+    }
+
+    job.processedDuration = Number(normalized.duration.toFixed(3));
     job.processedFile = path.basename(normalized.file);
     await copyPreview(normalized.file, job);
     await store.save();
 
     job.stage = 'uploading';
     await store.save();
-    const uploadResult = await client.uploadAudio(normalized.file, `${job.title} - ${job.artist}`, 1);
+
+    const uploadResult = await client.uploadAudio(
+      normalized.file,
+      `${job.title} - ${job.artist}`,
+      1,
+    );
+
     job.asset = {
       assetId: String(uploadResult.assetId),
       operationId: uploadResult.operationId || null,
@@ -385,9 +495,10 @@ async function processUpload(job, inputPath) {
     await store.save();
 
     if (job.asset.status === 'approved') {
-      await resolveLyricsForJob(job);
+      await markApprovedReady(job);
       return;
     }
+
     if (job.asset.status === 'declined') {
       job.stage = 'declined';
       job.error = job.asset.moderationLabel || 'Roblox moderation declined this audio.';
@@ -402,6 +513,9 @@ async function processUpload(job, inputPath) {
     monitorModeration(job).catch(err => console.error('[moderation]', err));
   } finally {
     await fs.rm(inputPath, { force: true }).catch(() => {});
+    if (separationWorkDir) {
+      await fs.rm(separationWorkDir, { recursive: true, force: true }).catch(() => {});
+    }
   }
 }
 
@@ -421,7 +535,7 @@ async function monitorModeration(job) {
       await store.save();
 
       if (result.status === 'approved') {
-        await resolveLyricsForJob(job);
+        await markApprovedReady(job);
         return;
       }
       if (result.status === 'declined') {
@@ -494,6 +608,11 @@ async function finalizeIntoLibrary(job) {
       lyrics: shiftedLyrics(job),
       lyricOffset: Number(job.lyricOffset) || 0,
       lyricsSource: job.lyricsSource,
+      audioType: job.audioType || 'karaoke',
+      separationModel: job.separationModel || null,
+      originalDuration: job.originalDuration || job.duration,
+      instrumentalDuration: job.instrumentalDuration || job.duration,
+      timelineDifferenceMs: Number(job.timelineDifferenceMs) || 0,
       sourceUploaderId: job.uploaderProfile,
       sourceUploader: job.uploaderName,
       sourceCreatorId: job.uploaderCreatorId,
