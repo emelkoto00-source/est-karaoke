@@ -10,6 +10,7 @@ import { JsonStore } from './store.js';
 import { normalizeForRoblox, probeDuration } from './audio.js';
 import { createInstrumentalFromOriginal } from './separation.js';
 import { downloadYoutubeKaraoke, analyzeKaraokeVideoSync } from './youtube.js';
+import { prepareUploadedKaraokeVideo } from './video_upload.js';
 import { RobloxClient } from './roblox.js';
 import { resolveLyrics } from './lyrics.js';
 
@@ -21,6 +22,7 @@ const processedDir = path.join(root, 'processed');
 const previewDir = path.join(root, 'previews');
 const separationDir = path.join(root, 'separation-work');
 const youtubeDir = path.join(root, 'youtube-work');
+const videoUploadDir = path.join(root, 'video-upload-work');
 const dataFile = path.join(root, 'data', 'state.json');
 await Promise.all([
   fs.mkdir(uploadDir, { recursive: true }),
@@ -28,6 +30,7 @@ await Promise.all([
   fs.mkdir(previewDir, { recursive: true }),
   fs.mkdir(separationDir, { recursive: true }),
   fs.mkdir(youtubeDir, { recursive: true }),
+  fs.mkdir(videoUploadDir, { recursive: true }),
 ]);
 
 const store = new JsonStore(dataFile);
@@ -63,7 +66,9 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.static(publicDir, { extensions: ['html'] }));
 
 const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 200);
+const maxVideoUploadMb = Number(process.env.MAX_VIDEO_UPLOAD_MB || 750);
 const upload = multer({ dest: uploadDir, limits: { fileSize: maxUploadMb * 1_000_000, files: 1 } });
+const videoUpload = multer({ dest: uploadDir, limits: { fileSize: maxVideoUploadMb * 1_000_000, files: 1 } });
 const moderationPollMs = Math.max(5, Number(process.env.ROBLOX_MODERATION_POLL_SECONDS || 15)) * 1000;
 const speedPresets = Array.from({ length: 20 }, (_, i) => Number((1 + i * 0.1).toFixed(1)));
 const FINAL_STAGES = new Set(['in_library', 'declined', 'discarded', 'failed']);
@@ -125,6 +130,7 @@ function publicJob(job) {
     videoSyncAnchors: Number(job.videoSyncAnchors) || 0,
     youtubeVideoTitle: job.youtubeVideoTitle,
     youtubeChannel: job.youtubeChannel,
+    uploadedVideoName: job.uploadedVideoName,
     separationModel: job.separationModel,
     originalDuration: job.originalDuration,
     instrumentalDuration: job.instrumentalDuration,
@@ -164,6 +170,8 @@ app.get('/api/health', (req, res) => {
     separationModel: process.env.DEMUCS_MODEL || 'htdemucs',
     youtubeKaraokeImport: true,
     videoSyncAssist: true,
+    videoUploadImport: true,
+    maxVideoUploadMb,
     videoSyncMethod: 'karaoke highlight CV + LRCLIB anchor alignment',
     gameSyncConfigured: Boolean(process.env.GAME_SYNC_TOKEN),
     speedPresets,
@@ -240,6 +248,70 @@ app.get('/api/jobs/:id/lyrics', adminAuth, (req, res) => {
     videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
     videoSyncAnchors: Number(job.videoSyncAnchors) || 0,
     videoSyncReason: job.videoSyncReason || '',
+  });
+});
+
+app.post('/api/video-import', adminAuth, videoUpload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Choose a karaoke video file.' });
+  }
+
+  const title = cleanText(req.body.title, 100);
+  const artist = cleanText(req.body.artist, 100);
+  const speed = Number(req.body.speed);
+  const uploader = uploaderProfiles.get(
+    cleanText(req.body.uploaderProfile, 20) || DEFAULT_UPLOADER_ID
+  );
+
+  if (!title || !artist) {
+    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    return res.status(400).json({ error: 'Title and artist are required.' });
+  }
+
+  if (!validSpeed(speed)) {
+    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    return res.status(400).json({ error: 'Speed must be one of the 1.0×–2.9× presets.' });
+  }
+
+  if (!uploader) {
+    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    return res.status(400).json({ error: 'Unknown upload account.' });
+  }
+
+  if (!uploader.client.configured) {
+    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    return res.status(400).json({ error: `${uploader.name} is not configured.` });
+  }
+
+  const job = {
+    id: crypto.randomUUID(),
+    title,
+    artist,
+    speed,
+    audioType: 'karaoke',
+    sourceType: 'video',
+    uploadedVideoName: cleanText(req.file.originalname, 240),
+    uploaderProfile: uploader.id,
+    uploaderName: uploader.name,
+    uploaderCreatorId: uploader.creatorId,
+    stage: 'video_preparing',
+    createdAt: Date.now(),
+    previewToken: crypto.randomBytes(24).toString('hex'),
+    asset: null,
+    lyrics: [],
+    lyricOffset: 0,
+  };
+
+  store.state.jobs.unshift(job);
+  await store.save();
+  res.status(202).json({ job: publicJob(job) });
+
+  processUploadedVideo(job, req.file.path, req.file.originalname).catch(async err => {
+    job.stage = 'failed';
+    job.error = err.message || String(err);
+    job.finishedAt = Date.now();
+    await cleanupJobFiles(job);
+    await store.save();
   });
 });
 
@@ -489,6 +561,129 @@ async function markApprovedReady(job) {
     return;
   }
   await resolveLyricsForJob(job);
+}
+
+async function processUploadedVideo(job, inputPath, originalName) {
+  const client = getUploaderClient(job);
+  let workDir = null;
+
+  try {
+    job.stage = 'video_preparing';
+    job.error = undefined;
+    await store.save();
+
+    const prepared = await prepareUploadedKaraokeVideo({
+      input: inputPath,
+      originalName,
+      workRoot: videoUploadDir,
+      jobId: job.id,
+      ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+      ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
+      bitrate: process.env.OUTPUT_BITRATE || '192k',
+    });
+
+    workDir = prepared.workDir;
+    job.duration = Number(prepared.duration.toFixed(3));
+    job.originalDuration = job.duration;
+    job.instrumentalDuration = job.duration;
+    job.timelineDifferenceMs = 0;
+    await store.save();
+
+    job.stage = 'video_lyrics';
+    job.lyricsError = undefined;
+    await store.save();
+
+    const lyricResult = await resolveLyrics({
+      title: job.title,
+      artist: job.artist,
+      duration: job.duration,
+    });
+
+    job.lyrics = lyricResult.lines;
+    job.lyricsSource = lyricResult.source;
+    job.lyricOffset = 0;
+    await store.save();
+
+    job.stage = 'video_sync';
+    await store.save();
+
+    const sync = await analyzeKaraokeVideoSync({
+      videoFile: prepared.videoFile,
+      lyrics: job.lyrics,
+      workDir: prepared.workDir,
+    });
+
+    job.videoSyncApplied = sync.applied === true;
+    job.videoSyncOffset = sync.applied ? Number(sync.offset) || 0 : 0;
+    job.videoSyncSuggestedOffset = Number(sync.suggestedOffset ?? sync.offset) || 0;
+    job.videoSyncConfidence = Number(sync.confidence) || 0;
+    job.videoSyncAnchors = Number(sync.matchedAnchors) || 0;
+    job.videoSyncDetectedEvents = Number(sync.detectedEvents) || 0;
+    job.videoSyncReason = cleanText(sync.reason, 500);
+
+    if (job.videoSyncApplied) {
+      job.lyricOffset = Number(job.videoSyncOffset.toFixed(3));
+    }
+    await store.save();
+
+    job.stage = 'processing';
+    await store.save();
+
+    const normalized = await normalizeForRoblox({
+      input: prepared.audioFile,
+      outDir: processedDir,
+      jobId: job.id,
+      ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+      ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
+      bitrate: process.env.OUTPUT_BITRATE || '192k',
+    });
+
+    job.processedDuration = Number(normalized.duration.toFixed(3));
+    job.processedFile = path.basename(normalized.file);
+    await copyPreview(normalized.file, job);
+    await store.save();
+
+    job.stage = 'uploading';
+    await store.save();
+
+    const uploadResult = await client.uploadAudio(
+      normalized.file,
+      `${job.title} - ${job.artist}`,
+      1,
+    );
+
+    job.asset = {
+      assetId: String(uploadResult.assetId),
+      operationId: uploadResult.operationId || null,
+      status: uploadResult.moderation?.status || 'pending',
+      moderationLabel: uploadResult.moderation?.label || 'Pending review',
+      accessStatus: 'pending',
+    };
+    await store.save();
+
+    if (job.asset.status === 'approved') {
+      await markApprovedReady(job);
+      return;
+    }
+
+    if (job.asset.status === 'declined') {
+      job.stage = 'declined';
+      job.error = job.asset.moderationLabel || 'Roblox moderation declined this audio.';
+      job.finishedAt = Date.now();
+      await cleanupJobFiles(job);
+      await store.save();
+      return;
+    }
+
+    job.stage = 'moderating';
+    await store.save();
+    monitorModeration(job).catch(err => console.error('[moderation]', err));
+  } finally {
+    await fs.rm(inputPath, { force: true }).catch(() => {});
+    if (workDir) {
+      await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
 }
 
 async function processYoutubeImport(job) {
