@@ -187,12 +187,61 @@ app.get('/api/health', (req, res) => {
     maxVideoUploadMb,
     videoSyncMethod: 'karaoke highlight CV + LRCLIB anchor alignment',
     gameSyncConfigured: Boolean(process.env.GAME_SYNC_TOKEN),
+    libraryStorage: store.storageInfo(),
     speedPresets,
   });
 });
 
 app.get('/api/jobs', adminAuth, (req, res) => res.json({ jobs: store.state.jobs.map(publicJob) }));
 app.get('/api/library', adminAuth, (req, res) => res.json({ songs: store.state.library }));
+
+// Downloadable disaster-recovery backup.
+// This contains KTV library metadata, lyric timing and Roblox asset IDs;
+// it does NOT contain Railway secrets or uploaded source audio files.
+app.get('/api/library/backup', adminAuth, (req, res) => {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="est-karaoke-library-${stamp}.json"`);
+  res.json({
+    format: 'EST_KARAOKE_LIBRARY_BACKUP_V1',
+    exportedAt: new Date().toISOString(),
+    nextSongNumber: store.state.nextSongNumber,
+    library: store.state.library,
+  });
+});
+
+// Import a previously downloaded EST library backup.
+// Use only from the authenticated Admin website.
+app.post('/api/library/import', adminAuth, async (req, res) => {
+  try {
+    await store.importLibraryBackup(req.body);
+    res.json({
+      ok: true,
+      songs: store.state.library.length,
+      nextSongNumber: store.state.nextSongNumber,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/library/snapshots', adminAuth, async (req, res) => {
+  try {
+    const snapshots = await store.listLibrarySnapshots(req.query.limit);
+    res.json({ snapshots });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/library/snapshots/:id/restore', adminAuth, async (req, res) => {
+  try {
+    await store.restoreLibrarySnapshot(req.params.id);
+    res.json({ ok: true, songs: store.state.library.length });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 
 app.post('/api/jobs/clear', adminAuth, async (req, res) => {
   const finished = store.state.jobs.filter(job => FINAL_STAGES.has(job.stage));
