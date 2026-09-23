@@ -6,7 +6,7 @@
 <title>EST Karaoke — Karaoke Desk</title>
 <style>
 :root{--bg:#080912;--panel:#111322;--panel2:#171a2c;--line:#292e49;--text:#f7f8ff;--muted:#9da4bf;--pink:#ff4db8;--blue:#5aa8ff;--green:#63e6be;--yellow:#ffd166;--red:#ff6b6b}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#17204a 0,transparent 35%),radial-gradient(circle at 90% 0,#3b1239 0,transparent 30%),var(--bg);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}.wrap{max-width:1200px;margin:auto;padding:26px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--pink),var(--blue));display:grid;place-items:center;font-size:24px;box-shadow:0 12px 40px #ff4db82c}.brand h1{font-size:19px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.status{border:1px solid var(--line);background:#0d1020;border-radius:999px;padding:9px 13px;color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.hero{margin:12px 0 22px}.hero h2{font-size:clamp(34px,5vw,64px);line-height:.98;letter-spacing:-.05em;margin:0;max-width:900px}.hero h2 span{background:linear-gradient(90deg,var(--pink),#b57cff,var(--blue));-webkit-background-clip:text;color:transparent}.hero p{color:var(--muted);max-width:760px;margin-top:14px}.tabs{display:flex;gap:8px;margin:24px 0}.tab{background:#0d1020;border:1px solid var(--line);color:var(--muted);padding:10px 14px;border-radius:10px;cursor:pointer}.tab.active{background:var(--panel2);color:var(--text);border-color:#475075}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.card{background:linear-gradient(180deg,#15182a,#0f1120);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 50px #0005}.card h3{margin:0 0 4px;font-size:18px}.sub{color:var(--muted);font-size:12px}.modepicker{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.mode{position:relative;border:1px solid #303654;background:#0b0e1b;border-radius:14px;padding:14px;cursor:pointer;min-height:116px}.mode input{position:absolute;opacity:0;pointer-events:none}.mode strong{display:block;font-size:15px;color:var(--text)}.mode span{display:block;color:var(--muted);font-size:11px;margin-top:6px;line-height:1.45}.mode.active{border-color:#8c6cff;background:linear-gradient(180deg,#1b1830,#101322);box-shadow:0 0 0 1px #8c6cff55 inset}.modebadge{display:inline-block!important;width:auto!important;margin:0 0 8px!important;padding:3px 7px;border-radius:999px;background:#25213e;color:#d8ccff!important;font-size:9px!important;font-weight:800;letter-spacing:.05em}.drop{border:1px dashed #4a5074;background:#0c0f1d;border-radius:14px;padding:20px;margin-top:14px}.drop input{width:100%}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}label{color:var(--muted);font-size:12px}input,select{display:block;width:100%;margin-top:6px;background:#0b0e1b;border:1px solid #303654;border-radius:10px;color:var(--text);min-height:44px;padding:10px 12px;font-size:15px}button{font:inherit}.primary,.secondary,.danger{border-radius:10px;min-height:44px;padding:10px 14px;font-weight:700;cursor:pointer}.primary{border:0;background:linear-gradient(90deg,var(--pink),#8c6cff,var(--blue));color:white}.secondary{background:#171a2c;border:1px solid #343a5b;color:var(--text)}.danger{background:#2b141d;border:1px solid #673044;color:#ff9aae}.full{width:100%;margin-top:14px}.queue{display:flex;flex-direction:column;gap:10px;margin-top:14px;max-height:640px;overflow:auto}.job{border:1px solid var(--line);border-radius:13px;background:#0b0e1b;padding:13px}.jobtop{display:flex;justify-content:space-between;gap:10px}.jobtitle{font-weight:800}.pill{font-size:10px;padding:4px 7px;border:1px solid #3c4364;border-radius:999px;color:var(--muted);white-space:nowrap}.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:12px}.step{font-size:9px;color:#5f6684;text-align:center}.step i{display:block;height:3px;border-radius:999px;background:#242943;margin-bottom:5px}.step.done{color:#b8c1e5}.step.done i{background:linear-gradient(90deg,var(--pink),var(--blue))}.step.now{color:white}.step.now i{background:var(--yellow)}.msg{margin-top:9px;color:var(--muted);font-size:12px}.jobactions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.jobactions button{min-height:34px;padding:6px 10px;font-size:12px}.hidden{display:none!important}.library{display:grid;gap:10px}.song{border:1px solid var(--line);border-radius:13px;background:#0c0f1d;padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center}.num{font-weight:900;color:var(--yellow);font-variant-numeric:tabular-nums}.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.show{display:flex}.modalbox{width:min(920px,100%);max-height:94vh;overflow:auto;background:#0f1220;border:1px solid #333a59;border-radius:20px;padding:18px;box-shadow:0 30px 100px #000}.reviewhead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.approved{color:var(--green);font-size:12px}.playerbox{margin-top:14px;background:#080a14;border:1px solid #2a304b;border-radius:14px;padding:16px}audio{width:100%}.ktv{margin-top:16px;background:linear-gradient(180deg,#091736,#090b1c);border:1px solid #243e75;border-radius:14px;min-height:190px;padding:22px;display:flex;flex-direction:column;justify-content:center;text-align:center;overflow:hidden}.ktvline{position:relative;font-size:clamp(24px,4vw,42px);font-weight:900;line-height:1.22;letter-spacing:-.02em;text-shadow:0 2px 0 #000,0 0 12px #000;margin:6px 0}.base{color:white}.overlaywrap{position:absolute;inset:0 auto 0 0;overflow:hidden;width:0}.overlay{position:absolute;left:0;top:0;width:100%;white-space:nowrap;color:#4aa7ff;text-shadow:0 2px 0 #001c45,0 0 10px #3d8cff}.nextline{font-size:clamp(20px,3vw,34px);font-weight:800;color:#fff;opacity:.92;text-shadow:0 2px 0 #000}.reviewgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.mini{border:1px solid var(--line);background:#0b0e1b;border-radius:10px;padding:10px}.mini span{display:block;color:var(--muted);font-size:10px}.mini b{display:block;margin-top:4px}.offset{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}.offset strong{min-width:90px;text-align:center}.reviewactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.notice{border:1px solid #654b22;background:#241d0e;color:#ffd98a;padding:10px 12px;border-radius:10px;font-size:12px;margin-top:12px}.login{position:fixed;inset:0;background:#080912;z-index:100;display:grid;place-items:center;padding:20px}.loginbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.loginbox h2{margin-top:0}.error{color:#ff9aae;font-size:12px;margin-top:8px}@media(max-width:820px){.grid{grid-template-columns:1fr}.modepicker{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.reviewgrid{grid-template-columns:1fr 1fr}.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.steps{grid-template-columns:repeat(3,1fr)}}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#17204a 0,transparent 35%),radial-gradient(circle at 90% 0,#3b1239 0,transparent 30%),var(--bg);color:var(--text);font:15px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}.wrap{max-width:1200px;margin:auto;padding:26px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px}.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--pink),var(--blue));display:grid;place-items:center;font-size:24px;box-shadow:0 12px 40px #ff4db82c}.brand h1{font-size:19px;margin:0}.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}.status{border:1px solid var(--line);background:#0d1020;border-radius:999px;padding:9px 13px;color:var(--muted);font-size:12px}.status.ok{color:var(--green)}.hero{margin:12px 0 22px}.hero h2{font-size:clamp(34px,5vw,64px);line-height:.98;letter-spacing:-.05em;margin:0;max-width:900px}.hero h2 span{background:linear-gradient(90deg,var(--pink),#b57cff,var(--blue));-webkit-background-clip:text;color:transparent}.hero p{color:var(--muted);max-width:760px;margin-top:14px}.tabs{display:flex;gap:8px;margin:24px 0}.tab{background:#0d1020;border:1px solid var(--line);color:var(--muted);padding:10px 14px;border-radius:10px;cursor:pointer}.tab.active{background:var(--panel2);color:var(--text);border-color:#475075}.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.card{background:linear-gradient(180deg,#15182a,#0f1120);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 18px 50px #0005}.card h3{margin:0 0 4px;font-size:18px}.sub{color:var(--muted);font-size:12px}.modepicker{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.mode{position:relative;border:1px solid #303654;background:#0b0e1b;border-radius:14px;padding:14px;cursor:pointer;min-height:116px}.mode input{position:absolute;opacity:0;pointer-events:none}.mode strong{display:block;font-size:15px;color:var(--text)}.mode span{display:block;color:var(--muted);font-size:11px;margin-top:6px;line-height:1.45}.mode.active{border-color:#8c6cff;background:linear-gradient(180deg,#1b1830,#101322);box-shadow:0 0 0 1px #8c6cff55 inset}.modebadge{display:inline-block!important;width:auto!important;margin:0 0 8px!important;padding:3px 7px;border-radius:999px;background:#25213e;color:#d8ccff!important;font-size:9px!important;font-weight:800;letter-spacing:.05em}.drop{border:1px dashed #4a5074;background:#0c0f1d;border-radius:14px;padding:20px;margin-top:14px}.drop input{width:100%}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}label{color:var(--muted);font-size:12px}input,select{display:block;width:100%;margin-top:6px;background:#0b0e1b;border:1px solid #303654;border-radius:10px;color:var(--text);min-height:44px;padding:10px 12px;font-size:15px}button{font:inherit}.primary,.secondary,.danger{border-radius:10px;min-height:44px;padding:10px 14px;font-weight:700;cursor:pointer}.primary{border:0;background:linear-gradient(90deg,var(--pink),#8c6cff,var(--blue));color:white}.secondary{background:#171a2c;border:1px solid #343a5b;color:var(--text)}.danger{background:#2b141d;border:1px solid #673044;color:#ff9aae}.full{width:100%;margin-top:14px}.queue{display:flex;flex-direction:column;gap:10px;margin-top:14px;max-height:640px;overflow:auto}.job{border:1px solid var(--line);border-radius:13px;background:#0b0e1b;padding:13px}.jobtop{display:flex;justify-content:space-between;gap:10px}.jobtitle{font-weight:800}.pill{font-size:10px;padding:4px 7px;border:1px solid #3c4364;border-radius:999px;color:var(--muted);white-space:nowrap}.steps{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-top:12px}.step{font-size:9px;color:#5f6684;text-align:center}.step i{display:block;height:3px;border-radius:999px;background:#242943;margin-bottom:5px}.step.done{color:#b8c1e5}.step.done i{background:linear-gradient(90deg,var(--pink),var(--blue))}.step.now{color:white}.step.now i{background:var(--yellow)}.msg{margin-top:9px;color:var(--muted);font-size:12px}.jobactions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.jobactions button{min-height:34px;padding:6px 10px;font-size:12px}.hidden{display:none!important}.library{display:grid;gap:10px}.song{border:1px solid var(--line);border-radius:13px;background:#0c0f1d;padding:13px;display:flex;justify-content:space-between;gap:12px;align-items:center}.num{font-weight:900;color:var(--yellow);font-variant-numeric:tabular-nums}.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.show{display:flex}.modalbox{width:min(920px,100%);max-height:94vh;overflow:auto;background:#0f1220;border:1px solid #333a59;border-radius:20px;padding:18px;box-shadow:0 30px 100px #000}.reviewhead{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.approved{color:var(--green);font-size:12px}.playerbox{margin-top:14px;background:#080a14;border:1px solid #2a304b;border-radius:14px;padding:16px}audio{width:100%}.ktv{margin-top:16px;background:linear-gradient(180deg,#091736,#090b1c);border:1px solid #243e75;border-radius:14px;min-height:190px;padding:22px;display:flex;flex-direction:column;justify-content:center;text-align:center;overflow:hidden}.ktvline{position:relative;font-size:clamp(24px,4vw,42px);font-weight:900;line-height:1.22;letter-spacing:-.02em;text-shadow:0 2px 0 #000,0 0 12px #000;margin:6px 0}.base{color:white}.overlaywrap{position:absolute;inset:0;overflow:hidden;width:100%;clip-path:inset(0 100% 0 0);will-change:clip-path;pointer-events:none}.overlay{position:absolute;inset:0;width:100%;white-space:nowrap;color:#4aa7ff;text-shadow:0 2px 0 #001c45,0 0 10px #3d8cff}.nextline{font-size:clamp(20px,3vw,34px);font-weight:800;color:#fff;opacity:.92;text-shadow:0 2px 0 #000}.reviewgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.mini{border:1px solid var(--line);background:#0b0e1b;border-radius:10px;padding:10px}.mini span{display:block;color:var(--muted);font-size:10px}.mini b{display:block;margin-top:4px}.offset{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}.offset strong{min-width:90px;text-align:center}.reviewactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.notice{border:1px solid #654b22;background:#241d0e;color:#ffd98a;padding:10px 12px;border-radius:10px;font-size:12px;margin-top:12px}.login{position:fixed;inset:0;background:#080912;z-index:100;display:grid;place-items:center;padding:20px}.loginbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.loginbox h2{margin-top:0}.error{color:#ff9aae;font-size:12px;margin-top:8px}@media(max-width:820px){.grid{grid-template-columns:1fr}.modepicker{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.reviewgrid{grid-template-columns:1fr 1fr}.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.steps{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
@@ -33,9 +33,16 @@
           <strong>Karaoke Audio</strong>
           <span>Use an instrumental/karaoke file you already have. EST keeps the existing normalization → Roblox → lyrics flow.</span>
         </label>
+        <label class="mode" data-mode="youtube">
+          <input type="radio" name="audioType" value="youtube">
+          <span class="modebadge">VIDEO SYNC</span>
+          <strong>YouTube Karaoke Link</strong>
+          <span>Paste a public karaoke video. EST imports its audio and uses visible karaoke-highlight timing to auto-align LRCLIB.</span>
+        </label>
       </div>
 
       <div class="drop"><label id="fileLabel">Original studio audio<input id="file" type="file" accept="audio/*"></label></div>
+      <div id="youtubeDrop" class="drop hidden"><label>YouTube karaoke video URL<input id="youtubeUrl" type="url" placeholder="https://www.youtube.com/watch?v=..."></label><div class="sub" style="margin-top:8px">Use a public YouTube karaoke video you are authorized to download/process. Playlists are not accepted.</div></div>
       <div class="fields">
         <label>Title<input id="title" placeholder="Song title"></label>
         <label>Artist<input id="artist" placeholder="Artist"></label>
@@ -46,7 +53,7 @@
       <button id="uploadBtn" class="primary full">Upload original & create karaoke</button>
       <div id="uploadError" class="error"></div>
     </div>
-    <div class="card"><h3>Upload queue</h3><div class="sub">Original: AI Karaoke → Lyrics → Roblox → Review → Access → KTV<br>Karaoke: Roblox → Moderation → Lyrics → Review → Access → KTV</div><div id="queue" class="queue"></div></div>
+    <div class="card"><h3>Upload queue</h3><div class="sub">Original: AI Karaoke → Lyrics → Roblox → Review → Access → KTV<br>Karaoke: Roblox → Moderation → Lyrics → Review → Access → KTV<br>YouTube: Video → Lyrics → Highlight Sync → Roblox → Review → KTV</div><div id="queue" class="queue"></div></div>
   </section>
 
   <section id="libraryTab" class="card hidden"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>KTV Library</h3><div class="sub">Songs currently available to Roblox karaoke servers.</div></div><button id="refreshLibrary" class="secondary">Refresh</button></div><div id="library" class="library" style="margin-top:14px"></div></section>
@@ -63,9 +70,9 @@
 </div></div>
 <script>
 (()=>{
-const $=s=>document.querySelector(s);let token=sessionStorage.getItem('ktvAdmin')||'';let health=null;let currentJob=null;let lyrics=[];let offset=0;let jobsTimer=null;
+const $=s=>document.querySelector(s);let token=sessionStorage.getItem('ktvAdmin')||'';let health=null;let currentJob=null;let lyrics=[];let offset=0;let jobsTimer=null;let previewRaf=0;let previewLastLine=Number.NaN;let previewLastProgress=-1;
 const stageOrder=['uploading','moderating','lyrics','review','granting_access','in_library'];
-const stageLabel={separating:'Creating karaoke with AI vocal separation',lyrics_preflight:'Matching LRCLIB to the original timeline',processing:'Preparing Roblox audio',uploading:'Uploading to Roblox',moderating:'Waiting for Roblox moderation',lyrics:'Getting automatic synchronized lyrics',lyrics_needed:'Lyrics need retry',review:'Ready for KTV review',granting_access:'Granting KTV experience access',access_required:'KTV access needs retry',in_library:'In KTV library',declined:'Roblox declined this audio',discarded:'Discarded',failed:'Failed'};
+const stageLabel={video_fetching:'Downloading public karaoke video',video_lyrics:'Getting LRCLIB synchronized lyrics',video_sync:'Examining karaoke highlight timing',separating:'Creating karaoke with AI vocal separation',lyrics_preflight:'Matching LRCLIB to the original timeline',processing:'Preparing Roblox audio',uploading:'Uploading to Roblox',moderating:'Waiting for Roblox moderation',lyrics:'Getting automatic synchronized lyrics',lyrics_needed:'Lyrics need retry',review:'Ready for KTV review',granting_access:'Granting KTV experience access',access_required:'KTV access needs retry',in_library:'In KTV library',declined:'Roblox declined this audio',discarded:'Discarded',failed:'Failed'};
 function authHeaders(json=false){const h={Authorization:`Bearer ${token}`};if(json)h['Content-Type']='application/json';return h}
 async function api(url,opts={}){opts.headers={...(opts.headers||{}),...authHeaders(Boolean(opts.body)&&!(opts.body instanceof FormData))};const r=await fetch(url,opts);let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||`Request failed (${r.status})`);return d}
 function setLogin(show,msg=''){$('#login').style.display=show?'grid':'none';$('#loginError').textContent=msg}
@@ -77,10 +84,18 @@ function selectedAudioType(){return document.querySelector('input[name="audioTyp
 function refreshAudioMode(){
   const type=selectedAudioType();
   document.querySelectorAll('.mode').forEach(el=>el.classList.toggle('active',el.dataset.mode===type));
+
+  const isYoutube=type==='youtube';
+  $('#youtubeDrop').classList.toggle('hidden',!isYoutube);
+  $('#file').closest('.drop').classList.toggle('hidden',isYoutube);
+
   if(type==='original'){
     $('#fileLabel').childNodes[0].nodeValue='Original studio audio';
     $('#uploadBtn').textContent='Upload original & create karaoke';
     $('#modeNotice').textContent='Original Audio: EST creates a vocal-removed instrumental without adding an intro, trimming silence, or changing tempo. It verifies the instrumental timeline, then searches LRCLIB. You can still adjust Global Lyric Offset during Review.';
+  }else if(type==='youtube'){
+    $('#uploadBtn').textContent='Import YouTube karaoke & auto-sync';
+    $('#modeNotice').textContent='YouTube Karaoke Link: EST imports the video audio, gets LRCLIB lyrics, analyzes repeated visible karaoke-highlight starts, and auto-fills Global Lyric Offset only when multiple timing anchors agree. Review and manual offset remain available.';
   }else{
     $('#fileLabel').childNodes[0].nodeValue='Karaoke / instrumental audio';
     $('#uploadBtn').textContent='Upload karaoke song';
@@ -91,8 +106,11 @@ $('#audioModePicker')?.addEventListener('change',refreshAudioMode);
 async function boot(){try{health=await fetch('/api/health').then(r=>r.json());$('#connection').textContent=health.ok?'Connected to KTV backend':'Backend unavailable';$('#connection').classList.toggle('ok',health.ok);renderUploaders();await loadJobs();await loadLibrary();setLogin(false);if(jobsTimer)clearInterval(jobsTimer);jobsTimer=setInterval(loadJobs,3000)}catch(e){setLogin(true,e.message)}}
 $('#loginBtn').onclick=()=>{token=$('#password').value;sessionStorage.setItem('ktvAdmin',token);boot().catch(e=>setLogin(true,e.message))};
 $('.tabs')?.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));const lib=b.dataset.tab==='library';$('#uploadTab').classList.toggle('hidden',lib);$('#libraryTab').classList.toggle('hidden',!lib);if(lib)loadLibrary()});
-$('#uploadBtn').onclick=async()=>{const f=$('#file').files[0];$('#uploadError').textContent='';if(!f){$('#uploadError').textContent='Choose an audio file.';return}const form=new FormData();form.append('file',f);form.append('title',$('#title').value);form.append('artist',$('#artist').value);form.append('speed',$('#speed').value);form.append('uploaderProfile',$('#uploader').value);form.append('audioType',selectedAudioType());try{$('#uploadBtn').disabled=true;await api('/api/uploads',{method:'POST',body:form,headers:{Authorization:`Bearer ${token}`}});$('#file').value='';await loadJobs()}catch(e){$('#uploadError').textContent=e.message}finally{$('#uploadBtn').disabled=false}};
+$('#uploadBtn').onclick=async()=>{const type=selectedAudioType();$('#uploadError').textContent='';try{$('#uploadBtn').disabled=true;if(type==='youtube'){const youtubeUrl=$('#youtubeUrl').value.trim();if(!youtubeUrl){throw new Error('Paste a YouTube karaoke video URL.')}await api('/api/youtube-import',{method:'POST',body:JSON.stringify({youtubeUrl,title:$('#title').value,artist:$('#artist').value,speed:Number($('#speed').value),uploaderProfile:$('#uploader').value})});$('#youtubeUrl').value='';}else{const f=$('#file').files[0];if(!f)throw new Error('Choose an audio file.');const form=new FormData();form.append('file',f);form.append('title',$('#title').value);form.append('artist',$('#artist').value);form.append('speed',$('#speed').value);form.append('uploaderProfile',$('#uploader').value);form.append('audioType',type);await api('/api/uploads',{method:'POST',body:form,headers:{Authorization:`Bearer ${token}`}});$('#file').value='';}await loadJobs()}catch(e){$('#uploadError').textContent=e.message}finally{$('#uploadBtn').disabled=false}};
 function jobStages(job){
+  if(job.sourceType==='youtube'){
+    return [['video','Video'],['lyrics','Lyrics'],['sync','Highlight Sync'],['roblox','Roblox'],['review','Review'],['ktv','KTV']];
+  }
   if(job.audioType==='original'){
     return [['separation','AI Karaoke'],['lyrics','Lyrics'],['roblox','Roblox'],['review','Review'],['access','Access'],['ktv','KTV']];
   }
@@ -120,7 +138,24 @@ function originalStepState(job,key){
   if(key==='ktv') return stage==='in_library'?'now':'';
   return '';
 }
+function youtubeStepState(job,key){
+  const stage=job.stage;
+  const videoDone=!['video_fetching'].includes(stage);
+  const lyricsDone=Boolean(job.lyricLineCount>0)||['video_sync','processing','uploading','moderating','review','granting_access','access_required','in_library'].includes(stage);
+  const syncDone=['processing','uploading','moderating','review','granting_access','access_required','in_library'].includes(stage);
+  const robloxDone=Boolean(job.asset)||['review','granting_access','access_required','in_library'].includes(stage);
+  const reviewDone=['granting_access','access_required','in_library'].includes(stage);
+
+  if(key==='video') return stage==='video_fetching'?'now':videoDone?'done':'';
+  if(key==='lyrics') return stage==='video_lyrics'?'now':lyricsDone?'done':'';
+  if(key==='sync') return stage==='video_sync'?'now':syncDone?'done':'';
+  if(key==='roblox') return ['processing','uploading','moderating'].includes(stage)?'now':robloxDone?'done':'';
+  if(key==='review') return stage==='review'?'now':reviewDone?'done':'';
+  if(key==='ktv') return ['granting_access','access_required'].includes(stage)?'now':stage==='in_library'?'done':'';
+  return '';
+}
 function stepState(job,key){
+  if(job.sourceType==='youtube')return youtubeStepState(job,key);
   if(job.audioType==='original')return originalStepState(job,key);
   const map={processing:0,uploading:0,moderating:1,lyrics:2,lyrics_needed:2,review:3,granting_access:4,access_required:4,in_library:5};
   const at=map[job.stage]??-1;
@@ -130,10 +165,17 @@ function stepState(job,key){
 function renderJob(job){
   const div=document.createElement('div');div.className='job';
   const stages=jobStages(job);
-  const typeLabel=job.audioType==='original'?'Original → AI Karaoke':'Karaoke audio';
+  const typeLabel=job.sourceType==='youtube'?'YouTube → Karaoke':job.audioType==='original'?'Original → AI Karaoke':'Karaoke audio';
   let conversion='';
   if(job.audioType==='original'&&job.timelineDifferenceMs!=null){
     conversion=` • timeline Δ ${Number(job.timelineDifferenceMs).toFixed(0)}ms`;
+  }
+  if(job.sourceType==='youtube'){
+    if(job.videoSyncApplied){
+      conversion+=` • auto offset ${Number(job.videoSyncOffset)>=0?'+':''}${Number(job.videoSyncOffset).toFixed(2)}s • ${Math.round(Number(job.videoSyncConfidence||0)*100)}% confidence`;
+    }else if(Number(job.videoSyncSuggestedOffset)){
+      conversion+=` • sync suggestion ${Number(job.videoSyncSuggestedOffset)>=0?'+':''}${Number(job.videoSyncSuggestedOffset).toFixed(2)}s (not auto-applied)`;
+    }
   }
   div.innerHTML=`<div class="jobtop"><div><div class="jobtitle">${safe(job.title)}</div><div class="sub">${safe(job.artist)} • ${Number(job.speed).toFixed(1)}× • ${safe(job.uploaderName)} • ${typeLabel}${conversion}</div></div><span class="pill">${safe(job.stage)}</span></div><div class="steps">${stages.map(([k,l])=>`<div class="step ${stepState(job,k)}"><i></i>${l}</div>`).join('')}</div><div class="msg">${safe(job.error||job.lyricsError||stageLabel[job.stage]||job.stage)}</div><div class="jobactions"></div>`;
   const a=div.querySelector('.jobactions');
@@ -142,19 +184,159 @@ function renderJob(job){
   return div;
 }
 async function loadJobs(){if(!token)return;try{const d=await api('/api/jobs');const q=$('#queue');q.innerHTML='';if(!d.jobs.length)q.innerHTML='<div class="sub">No uploads yet.</div>';for(const j of d.jobs.slice(0,30))q.appendChild(renderJob(j));}catch(e){if(/Admin password/.test(e.message)){sessionStorage.removeItem('ktvAdmin');setLogin(true,'Password required.')}}}
-async function loadLibrary(){if(!token)return;try{const d=await api('/api/library');const el=$('#library');el.innerHTML='';if(!d.songs.length)el.innerHTML='<div class="sub">No KTV songs yet.</div>';for(const s of d.songs){const row=document.createElement('div');row.className='song';row.innerHTML=`<div><div><span class="num">${safe(s.number)}</span> <b>${safe(s.title)}</b></div><div class="sub">${safe(s.artist)} • ${Number(s.speed||1).toFixed(1)}× • ${s.audioType==='original'?'AI instrumental':'karaoke upload'} • ${safe(s.sourceUploader||'')}</div></div><button class="danger">Delete</button>`;row.querySelector('button').onclick=async()=>{if(!confirm(`Remove ${s.title} from the live KTV library?`))return;await api(`/api/library/${encodeURIComponent(s.number)}`,{method:'DELETE'});loadLibrary()};el.appendChild(row)}}catch(e){}}
+async function loadLibrary(){if(!token)return;try{const d=await api('/api/library');const el=$('#library');el.innerHTML='';if(!d.songs.length)el.innerHTML='<div class="sub">No KTV songs yet.</div>';for(const s of d.songs){const row=document.createElement('div');row.className='song';row.innerHTML=`<div><div><span class="num">${safe(s.number)}</span> <b>${safe(s.title)}</b></div><div class="sub">${safe(s.artist)} • ${Number(s.speed||1).toFixed(1)}× • ${s.sourceType==='youtube'?'YouTube karaoke':s.audioType==='original'?'AI instrumental':'karaoke upload'} • ${safe(s.sourceUploader||'')}</div></div><button class="danger">Delete</button>`;row.querySelector('button').onclick=async()=>{if(!confirm(`Remove ${s.title} from the live KTV library?`))return;await api(`/api/library/${encodeURIComponent(s.number)}`,{method:'DELETE'});loadLibrary()};el.appendChild(row)}}catch(e){}}
 $('#refreshLibrary').onclick=loadLibrary;
-async function openReview(job){currentJob=job;$('#reviewError').textContent='';const d=await api(`/api/jobs/${job.id}/lyrics`);lyrics=d.lines||[];offset=Number(d.lyricOffset)||0;$('#reviewTitle').textContent=d.title;$('#reviewArtist').textContent=d.artist;$('#rSpeed').textContent=`${Number(d.speed).toFixed(1)}×`;$('#rLines').textContent=`${lyrics.length} lines`;$('#rSource').textContent=d.source||'automatic';$('#rDuration').textContent=fmt(job.duration);const audio=$('#previewAudio');audio.src=`/api/jobs/${job.id}/preview?token=${encodeURIComponent(job.previewToken)}`;audio.playbackRate=Number(d.speed)||1;audio.preservesPitch=true;$('#offsetValue').textContent=`${offset>=0?'+':''}${offset.toFixed(1)}s`;$('#reviewModal').classList.add('show');renderKtv(audio.currentTime||0)}
-function lineAt(t){const time=t-offset;let idx=-1;for(let i=0;i<lyrics.length;i++){if(Number(lyrics[i].start)<=time)idx=i;else break}return {idx,line:idx>=0?lyrics[idx]:null,next:lyrics[idx+1]||null,time}}
-function progressFor(line,time){if(!line)return 0;const words=line.words||[];if(!words.length){const span=Math.max(.1,Number(line.end)-Number(line.start));return Math.max(0,Math.min(1,(time-Number(line.start))/span))}const text=String(line.text||'');let chars=0;for(const w of words)chars+=String(w.text||'').length+1;chars=Math.max(1,chars-1);let done=0;for(let i=0;i<words.length;i++){const w=words[i],len=String(w.text||'').length;if(time>=Number(w.end))done+=len+(i<words.length-1?1:0);else if(time>Number(w.start)){const span=Math.max(.05,Number(w.end)-Number(w.start));done+=len*Math.max(0,Math.min(1,(time-Number(w.start))/span));break}else break}return Math.max(0,Math.min(1,done/chars))}
-function renderKtv(t){const r=lineAt(t),text=r.line?.text||'Press play to preview lyrics';$('#currentBase').textContent=text;$('#currentOverlay').textContent=text;$('#nextLine').textContent=r.next?.text||'';$('#overlayWrap').style.width=`${progressFor(r.line,r.time)*100}%`;requestAnimationFrame(()=>{const base=$('#currentBase'),ov=$('#currentOverlay');ov.style.width=`${base.getBoundingClientRect().width}px`})}
-$('#previewAudio').addEventListener('timeupdate',e=>renderKtv(e.currentTarget.currentTime));$('#previewAudio').addEventListener('play',e=>{e.currentTarget.playbackRate=Number(currentJob?.speed)||1});
-async function saveOffset(){if(!currentJob)return;await api(`/api/jobs/${currentJob.id}/review`,{method:'PATCH',body:JSON.stringify({offset})});$('#offsetValue').textContent=`${offset>=0?'+':''}${offset.toFixed(1)}s`}
+function stopPreviewAnimation(){
+  if(previewRaf){
+    cancelAnimationFrame(previewRaf);
+    previewRaf=0;
+  }
+}
+function resetPreviewRenderCache(){
+  previewLastLine=Number.NaN;
+  previewLastProgress=-1;
+}
+async function openReview(job){
+  stopPreviewAnimation();
+  resetPreviewRenderCache();
+  currentJob=job;
+  $('#reviewError').textContent='';
+  const d=await api(`/api/jobs/${job.id}/lyrics`);
+  lyrics=d.lines||[];
+  offset=Number(d.lyricOffset)||0;
+  $('#reviewTitle').textContent=d.title;
+  $('#reviewArtist').textContent=d.artist;
+  $('#rSpeed').textContent=`${Number(d.speed).toFixed(1)}×`;
+  $('#rLines').textContent=`${lyrics.length} lines`;
+  const syncInfo=d.videoSyncApplied
+    ?` • video sync ${Number(d.videoSyncOffset)>=0?'+':''}${Number(d.videoSyncOffset).toFixed(2)}s (${Math.round(Number(d.videoSyncConfidence||0)*100)}%, ${Number(d.videoSyncAnchors||0)} anchors)`
+    :'';
+  $('#rSource').textContent=(d.source||'automatic')+syncInfo;
+  $('#rDuration').textContent=fmt(job.duration);
+
+  const audio=$('#previewAudio');
+  audio.pause();
+  audio.src=`/api/jobs/${job.id}/preview?token=${encodeURIComponent(job.previewToken)}`;
+  audio.playbackRate=Number(d.speed)||1;
+  audio.preservesPitch=true;
+
+  $('#offsetValue').textContent=`${offset>=0?'+':''}${offset.toFixed(1)}s`;
+  $('#reviewModal').classList.add('show');
+  renderKtv(audio.currentTime||0,true);
+}
+function lineAt(t){
+  const time=t-offset;
+  let idx=-1;
+  for(let i=0;i<lyrics.length;i++){
+    if(Number(lyrics[i].start)<=time)idx=i;
+    else break;
+  }
+  return {idx,line:idx>=0?lyrics[idx]:null,next:lyrics[idx+1]||null,time};
+}
+function progressFor(line,time){
+  if(!line)return 0;
+  const words=line.words||[];
+  if(!words.length){
+    const span=Math.max(.1,Number(line.end)-Number(line.start));
+    return Math.max(0,Math.min(1,(time-Number(line.start))/span));
+  }
+  const text=String(line.text||'');
+  let chars=0;
+  for(const w of words)chars+=String(w.text||'').length+1;
+  chars=Math.max(1,chars-1);
+  let done=0;
+  for(let i=0;i<words.length;i++){
+    const w=words[i],len=String(w.text||'').length;
+    if(time>=Number(w.end)){
+      done+=len+(i<words.length-1?1:0);
+    }else if(time>Number(w.start)){
+      const span=Math.max(.05,Number(w.end)-Number(w.start));
+      done+=len*Math.max(0,Math.min(1,(time-Number(w.start))/span));
+      break;
+    }else break;
+  }
+  return Math.max(0,Math.min(1,done/chars));
+}
+function renderKtv(t,force=false){
+  const r=lineAt(t);
+  const text=r.line?.text||'Press play to preview lyrics';
+  const lineKey=r.idx;
+
+  // Text changes only when the lyric line changes. Avoid rebuilding text DOM
+  // on every animation frame.
+  if(force||lineKey!==previewLastLine){
+    $('#currentBase').textContent=text;
+    $('#currentOverlay').textContent=text;
+    $('#nextLine').textContent=r.next?.text||'';
+    previewLastLine=lineKey;
+    previewLastProgress=-1;
+  }
+
+  const progress=progressFor(r.line,r.time);
+
+  // clip-path reveals the blue copy without resizing/reflowing the lyric DOM.
+  // That keeps the base and highlighted text pixel-perfectly aligned.
+  if(force||Math.abs(progress-previewLastProgress)>.0002){
+    const hidden=Math.max(0,Math.min(100,(1-progress)*100));
+    $('#overlayWrap').style.clipPath=`inset(0 ${hidden.toFixed(3)}% 0 0)`;
+    previewLastProgress=progress;
+  }
+}
+function previewAnimationFrame(){
+  previewRaf=0;
+  const audio=$('#previewAudio');
+
+  if(!$('#reviewModal').classList.contains('show'))return;
+
+  renderKtv(audio.currentTime||0);
+
+  if(!audio.paused&&!audio.ended){
+    previewRaf=requestAnimationFrame(previewAnimationFrame);
+  }
+}
+function startPreviewAnimation(){
+  stopPreviewAnimation();
+  previewRaf=requestAnimationFrame(previewAnimationFrame);
+}
+const previewAudio=$('#previewAudio');
+previewAudio.addEventListener('play',e=>{
+  e.currentTarget.playbackRate=Number(currentJob?.speed)||1;
+  startPreviewAnimation();
+});
+previewAudio.addEventListener('pause',e=>{
+  stopPreviewAnimation();
+  renderKtv(e.currentTarget.currentTime||0);
+});
+previewAudio.addEventListener('ended',e=>{
+  stopPreviewAnimation();
+  renderKtv(e.currentTarget.currentTime||0,true);
+});
+previewAudio.addEventListener('seeking',e=>{
+  renderKtv(e.currentTarget.currentTime||0,true);
+});
+previewAudio.addEventListener('seeked',e=>{
+  renderKtv(e.currentTarget.currentTime||0,true);
+  if(!e.currentTarget.paused)startPreviewAnimation();
+});
+previewAudio.addEventListener('loadedmetadata',e=>{
+  e.currentTarget.playbackRate=Number(currentJob?.speed)||1;
+  renderKtv(e.currentTarget.currentTime||0,true);
+});
+previewAudio.addEventListener('ratechange',e=>{
+  if(currentJob){
+    const expected=Number(currentJob.speed)||1;
+    if(Math.abs(e.currentTarget.playbackRate-expected)>.001){
+      e.currentTarget.playbackRate=expected;
+    }
+  }
+});
+
+async function saveOffset(){if(!currentJob)return;await api(`/api/jobs/${currentJob.id}/review`,{method:'PATCH',body:JSON.stringify({offset})});$('#offsetValue').textContent=`${offset>=0?'+':''}${offset.toFixed(1)}s`;resetPreviewRenderCache();renderKtv($('#previewAudio').currentTime||0,true)}
 $('#minusOffset').onclick=async()=>{offset=Math.max(-30,Number((offset-.5).toFixed(1)));await saveOffset()};$('#plusOffset').onclick=async()=>{offset=Math.min(30,Number((offset+.5).toFixed(1)));await saveOffset()};$('#resetOffset').onclick=async()=>{offset=0;await saveOffset()};
-$('#proceed').onclick=async()=>{if(!currentJob)return;try{$('#reviewError').textContent='';$('#proceed').disabled=true;const finalOffset=Number(offset)||0;await api(`/api/jobs/${currentJob.id}/proceed`,{method:'POST',body:JSON.stringify({offset:finalOffset})});$('#reviewModal').classList.remove('show');await loadJobs();await loadLibrary()}catch(e){$('#reviewError').textContent=e.message}finally{$('#proceed').disabled=false}};
-$('#retryLyrics').onclick=async()=>{if(!currentJob)return;await api(`/api/jobs/${currentJob.id}/retry-lyrics`,{method:'POST'});$('#reviewModal').classList.remove('show');loadJobs()};
-$('#discard').onclick=async()=>{if(!currentJob||!confirm('Discard this upload from the KTV website?'))return;await api(`/api/jobs/${currentJob.id}/discard`,{method:'POST'});$('#reviewModal').classList.remove('show');loadJobs()};
-$('#closeReview').onclick=()=>{$('#previewAudio').pause();$('#reviewModal').classList.remove('show')};
+$('#proceed').onclick=async()=>{if(!currentJob)return;try{$('#reviewError').textContent='';$('#proceed').disabled=true;const finalOffset=Number(offset)||0;await api(`/api/jobs/${currentJob.id}/proceed`,{method:'POST',body:JSON.stringify({offset:finalOffset})});stopPreviewAnimation();$('#previewAudio').pause();$('#reviewModal').classList.remove('show');await loadJobs();await loadLibrary()}catch(e){$('#reviewError').textContent=e.message}finally{$('#proceed').disabled=false}};
+$('#retryLyrics').onclick=async()=>{if(!currentJob)return;stopPreviewAnimation();$('#previewAudio').pause();await api(`/api/jobs/${currentJob.id}/retry-lyrics`,{method:'POST'});$('#reviewModal').classList.remove('show');loadJobs()};
+$('#discard').onclick=async()=>{if(!currentJob||!confirm('Discard this upload from the KTV website?'))return;stopPreviewAnimation();$('#previewAudio').pause();await api(`/api/jobs/${currentJob.id}/discard`,{method:'POST'});$('#reviewModal').classList.remove('show');loadJobs()};
+$('#closeReview').onclick=()=>{stopPreviewAnimation();$('#previewAudio').pause();$('#reviewModal').classList.remove('show')};
 populateSpeed();refreshAudioMode();if(token)boot();else setLogin(true);
 })();
 </script>
