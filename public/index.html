@@ -10,7 +10,8 @@
 .offsetentry{display:flex;align-items:center;gap:6px;background:#0b0e1b;border:1px solid #343a5b;border-radius:10px;padding:0 10px;height:44px}
 .offsetentry input{width:92px;min-height:36px;margin:0;padding:6px 8px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;border:0;background:transparent}
 .offsetentry span{color:var(--muted);font-weight:700}
-.offsetsaved{min-width:70px;color:var(--green);font-size:11px}.reviewactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.notice{border:1px solid #654b22;background:#241d0e;color:#ffd98a;padding:10px 12px;border-radius:10px;font-size:12px;margin-top:12px}.login{position:fixed;inset:0;background:#080912;z-index:100;display:grid;place-items:center;padding:20px}.loginbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.loginbox h2{margin-top:0}.error{color:#ff9aae;font-size:12px;margin-top:8px}@media(max-width:820px){.grid{grid-template-columns:1fr}.modepicker{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.reviewgrid{grid-template-columns:1fr 1fr}.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.steps{grid-template-columns:repeat(3,1fr)}}
+.offsetsaved{min-width:70px;color:var(--green);font-size:11px}.sourceinput{margin-top:4px;min-height:34px;height:34px;padding:5px 8px;font-size:12px;font-weight:800;border-radius:8px}
+.sourcemeta{display:block;margin-top:5px;color:var(--muted);font-size:9px;line-height:1.25}.reviewactions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.notice{border:1px solid #654b22;background:#241d0e;color:#ffd98a;padding:10px 12px;border-radius:10px;font-size:12px;margin-top:12px}.login{position:fixed;inset:0;background:#080912;z-index:100;display:grid;place-items:center;padding:20px}.loginbox{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px}.loginbox h2{margin-top:0}.error{color:#ff9aae;font-size:12px;margin-top:8px}@media(max-width:820px){.grid{grid-template-columns:1fr}.modepicker{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.reviewgrid{grid-template-columns:1fr 1fr}.wrap{padding:16px}.top{align-items:flex-start;flex-direction:column}.steps{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
@@ -74,7 +75,7 @@
   <div class="reviewhead"><div><div class="approved">ROBLOX APPROVED • LYRICS READY</div><h2 id="reviewTitle" style="margin:4px 0 0"></h2><div id="reviewArtist" class="sub"></div></div><button id="closeReview" class="secondary">Close</button></div>
   <div class="playerbox"><audio id="previewAudio" controls></audio></div>
   <div class="ktv"><div class="ktvline"><div id="currentBase" class="base">Press play to preview lyrics</div><div id="overlayWrap" class="overlaywrap"><div id="currentOverlay" class="overlay">Press play to preview lyrics</div></div></div><div id="nextLine" class="nextline"></div></div>
-  <div class="reviewgrid"><div class="mini"><span>Playback speed</span><b id="rSpeed"></b></div><div class="mini"><span>Lyrics</span><b id="rLines"></b></div><div class="mini"><span>Source</span><b id="rSource"></b></div><div class="mini"><span>Audio duration</span><b id="rDuration"></b></div></div>
+  <div class="reviewgrid"><div class="mini"><span>Playback speed</span><b id="rSpeed"></b></div><div class="mini"><span>Lyrics</span><b id="rLines"></b></div><div class="mini"><span>Source — editable</span><input id="rSource" class="sourceinput" type="text" maxlength="160" placeholder="Example: LRCLIB #36981164"><small id="rSourceMeta" class="sourcemeta"></small></div><div class="mini"><span>Audio duration</span><b id="rDuration"></b></div></div>
   <div class="offset">
     <span class="sub">Global lyric offset — this exact value is saved into the live EST KTV timing</span>
     <button id="minusOffset" class="secondary">−0.1s</button>
@@ -233,9 +234,10 @@ async function openReview(job){
   $('#rSpeed').textContent=`${Number(d.speed).toFixed(1)}×`;
   $('#rLines').textContent=`${lyrics.length} lines`;
   const syncInfo=d.videoSyncApplied
-    ?` • video sync ${Number(d.videoSyncOffset)>=0?'+':''}${Number(d.videoSyncOffset).toFixed(2)}s (${Math.round(Number(d.videoSyncConfidence||0)*100)}%, ${Number(d.videoSyncAnchors||0)} anchors)`
+    ?`Video sync: ${Number(d.videoSyncOffset)>=0?'+':''}${Number(d.videoSyncOffset).toFixed(2)}s • ${Math.round(Number(d.videoSyncConfidence||0)*100)}% • ${Number(d.videoSyncAnchors||0)} anchors`
     :'';
-  $('#rSource').textContent=(d.source||'automatic')+syncInfo;
+  $('#rSource').value=d.source||'';
+  $('#rSourceMeta').textContent=syncInfo;
   $('#rDuration').textContent=fmt(job.duration);
 
   const audio=$('#previewAudio');
@@ -426,6 +428,33 @@ $('#resetOffset').onclick=async()=>{
   showOffsetValue(0);
   try{await saveOffset(0)}catch{}
 };
+function readSourceInput(){
+  const input=$('#rSource');
+  const value=String(input?.value||'').trim();
+  if(value.length>160)throw new Error('Source must be 160 characters or fewer.');
+  return value;
+}
+async function saveSource(){
+  if(!currentJob)return;
+  try{
+    $('#reviewError').textContent='';
+    const source=readSourceInput();
+    await api(`/api/jobs/${currentJob.id}/review`,{
+      method:'PATCH',
+      body:JSON.stringify({source})
+    });
+  }catch(e){
+    $('#reviewError').textContent=e.message;
+  }
+}
+$('#rSource').addEventListener('change',saveSource);
+$('#rSource').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    e.currentTarget.blur();
+  }
+});
+
 $('#proceed').onclick=async()=>{
   if(!currentJob)return;
   try{
@@ -436,10 +465,14 @@ $('#proceed').onclick=async()=>{
     // This means a manually typed value is authoritative even if the user
     // clicks "Yes" immediately without first clicking Apply.
     const finalOffset=readOffsetInput();
+    const finalSource=readSourceInput();
 
     await api(`/api/jobs/${currentJob.id}/proceed`,{
       method:'POST',
-      body:JSON.stringify({offset:finalOffset})
+      body:JSON.stringify({
+        offset:finalOffset,
+        source:finalSource
+      })
     });
 
     stopPreviewAnimation();
