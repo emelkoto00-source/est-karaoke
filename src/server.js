@@ -9,10 +9,11 @@ import crypto from 'node:crypto';
 import { JsonStore } from './store.js';
 import { normalizeForRoblox, probeDuration } from './audio.js';
 import { createInstrumentalFromOriginal } from './separation.js';
-import { downloadYoutubeKaraoke, analyzeKaraokeVideoSync } from './youtube.js';
+import { downloadYoutubeKaraoke, downloadYoutubeReferenceAudio, analyzeKaraokeVideoSync } from './youtube.js';
 import { prepareUploadedKaraokeVideo } from './video_upload.js';
 import { RobloxClient } from './roblox.js';
 import { resolveLyrics } from './lyrics.js';
+import { analyzeReferenceTrackSync, applyReferenceTimeMap } from './reference_sync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -67,8 +68,8 @@ app.use(express.static(publicDir, { extensions: ['html'] }));
 
 const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 200);
 const maxVideoUploadMb = Number(process.env.MAX_VIDEO_UPLOAD_MB || 750);
-const upload = multer({ dest: uploadDir, limits: { fileSize: maxUploadMb * 1_000_000, files: 1 } });
-const videoUpload = multer({ dest: uploadDir, limits: { fileSize: maxVideoUploadMb * 1_000_000, files: 1 } });
+const upload = multer({ dest: uploadDir, limits: { fileSize: maxUploadMb * 1_000_000, files: 2 } });
+const videoUpload = multer({ dest: uploadDir, limits: { fileSize: maxVideoUploadMb * 1_000_000, files: 2 } });
 const moderationPollMs = Math.max(5, Number(process.env.ROBLOX_MODERATION_POLL_SECONDS || 15)) * 1000;
 const speedPresets = Array.from({ length: 20 }, (_, i) => Number((1 + i * 0.1).toFixed(1)));
 const FINAL_STAGES = new Set(['in_library', 'declined', 'discarded', 'failed']);
@@ -128,6 +129,16 @@ function publicJob(job) {
     videoSyncSuggestedOffset: Number(job.videoSyncSuggestedOffset) || 0,
     videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
     videoSyncAnchors: Number(job.videoSyncAnchors) || 0,
+    referenceSyncRequested: job.referenceSyncRequested === true,
+    referenceSyncApplied: job.referenceSyncApplied === true,
+    referenceSyncConfidence: Number(job.referenceSyncConfidence) || 0,
+    referenceSyncAnchors: Number(job.referenceSyncAnchors) || 0,
+    referenceSyncGlobalOffset: Number(job.referenceSyncGlobalOffset) || 0,
+    referenceSyncPitchShift: Number(job.referenceSyncPitchShift) || 0,
+    referenceSyncTempoRatio: Number(job.referenceSyncTempoRatio) || 1,
+    referenceSyncReason: job.referenceSyncReason || '',
+    referenceTrackName: job.referenceTrackName || '',
+    referenceYoutubeTitle: job.referenceYoutubeTitle || '',
     youtubeVideoTitle: job.youtubeVideoTitle,
     youtubeChannel: job.youtubeChannel,
     uploadedVideoName: job.uploadedVideoName,
@@ -171,6 +182,8 @@ app.get('/api/health', (req, res) => {
     youtubeKaraokeImport: true,
     videoSyncAssist: true,
     videoUploadImport: true,
+    originalReferenceSync: true,
+    originalReferenceSyncMethod: 'Demucs accompaniment + chroma/anchor timeline mapping',
     maxVideoUploadMb,
     videoSyncMethod: 'karaoke highlight CV + LRCLIB anchor alignment',
     gameSyncConfigured: Boolean(process.env.GAME_SYNC_TOKEN),
@@ -248,11 +261,25 @@ app.get('/api/jobs/:id/lyrics', adminAuth, (req, res) => {
     videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
     videoSyncAnchors: Number(job.videoSyncAnchors) || 0,
     videoSyncReason: job.videoSyncReason || '',
+    referenceSyncRequested: job.referenceSyncRequested === true,
+    referenceSyncApplied: job.referenceSyncApplied === true,
+    referenceSyncConfidence: Number(job.referenceSyncConfidence) || 0,
+    referenceSyncAnchors: Number(job.referenceSyncAnchors) || 0,
+    referenceSyncGlobalOffset: Number(job.referenceSyncGlobalOffset) || 0,
+    referenceSyncPitchShift: Number(job.referenceSyncPitchShift) || 0,
+    referenceSyncTempoRatio: Number(job.referenceSyncTempoRatio) || 1,
+    referenceSyncReason: job.referenceSyncReason || '',
   });
 });
 
-app.post('/api/video-import', adminAuth, videoUpload.single('file'), async (req, res) => {
-  if (!req.file) {
+app.post('/api/video-import', adminAuth, videoUpload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'referenceOriginal', maxCount: 1 },
+]), async (req, res) => {
+  const videoFile = req.files?.file?.[0];
+  const referenceFile = req.files?.referenceOriginal?.[0];
+  if (!videoFile) {
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Choose a karaoke video file.' });
   }
 
@@ -264,22 +291,26 @@ app.post('/api/video-import', adminAuth, videoUpload.single('file'), async (req,
   );
 
   if (!title || !artist) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(videoFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Title and artist are required.' });
   }
 
   if (!validSpeed(speed)) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(videoFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Speed must be one of the 1.0×–2.9× presets.' });
   }
 
   if (!uploader) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(videoFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Unknown upload account.' });
   }
 
   if (!uploader.client.configured) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(videoFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: `${uploader.name} is not configured.` });
   }
 
@@ -290,7 +321,9 @@ app.post('/api/video-import', adminAuth, videoUpload.single('file'), async (req,
     speed,
     audioType: 'karaoke',
     sourceType: 'video',
-    uploadedVideoName: cleanText(req.file.originalname, 240),
+    uploadedVideoName: cleanText(videoFile.originalname, 240),
+    referenceSyncRequested: Boolean(referenceFile),
+    referenceTrackName: referenceFile ? cleanText(referenceFile.originalname, 240) : '',
     uploaderProfile: uploader.id,
     uploaderName: uploader.name,
     uploaderCreatorId: uploader.creatorId,
@@ -306,12 +339,13 @@ app.post('/api/video-import', adminAuth, videoUpload.single('file'), async (req,
   await store.save();
   res.status(202).json({ job: publicJob(job) });
 
-  processUploadedVideo(job, req.file.path, req.file.originalname).catch(async err => {
+  processUploadedVideo(job, videoFile.path, videoFile.originalname, referenceFile?.path || null).catch(async err => {
     job.stage = 'failed';
     job.error = err.message || String(err);
     job.finishedAt = Date.now();
     await cleanupJobFiles(job);
     await store.save();
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
   });
 });
 
@@ -319,6 +353,7 @@ app.post('/api/youtube-import', adminAuth, async (req, res) => {
   const title = cleanText(req.body?.title, 100);
   const artist = cleanText(req.body?.artist, 100);
   const youtubeUrl = cleanText(req.body?.youtubeUrl, 1000);
+  const referenceYoutubeUrl = cleanText(req.body?.referenceYoutubeUrl, 1000);
   const speed = Number(req.body?.speed);
   const uploader = uploaderProfiles.get(
     cleanText(req.body?.uploaderProfile, 20) || DEFAULT_UPLOADER_ID
@@ -348,6 +383,8 @@ app.post('/api/youtube-import', adminAuth, async (req, res) => {
     audioType: 'karaoke',
     sourceType: 'youtube',
     youtubeUrl,
+    referenceYoutubeUrl,
+    referenceSyncRequested: Boolean(referenceYoutubeUrl),
     uploaderProfile: uploader.id,
     uploaderName: uploader.name,
     uploaderCreatorId: uploader.creatorId,
@@ -372,8 +409,16 @@ app.post('/api/youtube-import', adminAuth, async (req, res) => {
   });
 });
 
-app.post('/api/uploads', adminAuth, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Choose an audio file.' });
+app.post('/api/uploads', adminAuth, upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'referenceOriginal', maxCount: 1 },
+]), async (req, res) => {
+  const audioFile = req.files?.file?.[0];
+  const referenceFile = req.files?.referenceOriginal?.[0];
+  if (!audioFile) {
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
+    return res.status(400).json({ error: 'Choose an audio file.' });
+  }
   const title = cleanText(req.body.title, 100);
   const artist = cleanText(req.body.artist, 100);
   const speed = Number(req.body.speed);
@@ -381,24 +426,35 @@ app.post('/api/uploads', adminAuth, upload.single('file'), async (req, res) => {
   const uploader = uploaderProfiles.get(cleanText(req.body.uploaderProfile, 20) || DEFAULT_UPLOADER_ID);
 
   if (!['original', 'karaoke'].includes(audioType)) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(audioFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Audio type must be Original Audio or Karaoke Audio.' });
   }
 
+  if (audioType === 'original' && referenceFile) {
+    await fs.rm(audioFile.path, { force: true }).catch(() => {});
+    await fs.rm(referenceFile.path, { force: true }).catch(() => {});
+    return res.status(400).json({ error: 'Original Audio mode already is the reference track; do not attach a second original reference.' });
+  }
+
   if (!title || !artist) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(audioFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Title and artist are required.' });
   }
   if (!validSpeed(speed)) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(audioFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Speed must be one of the 1.0×–2.9× presets.' });
   }
   if (!uploader) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(audioFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: 'Unknown upload account.' });
   }
   if (!uploader.client.configured) {
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(audioFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
     return res.status(400).json({ error: `${uploader.name} is not configured.` });
   }
 
@@ -413,7 +469,9 @@ app.post('/api/uploads', adminAuth, upload.single('file'), async (req, res) => {
     uploaderName: uploader.name,
     uploaderCreatorId: uploader.creatorId,
     stage: audioType === 'original' ? 'separating' : 'processing',
-    originalName: req.file.originalname,
+    originalName: audioFile.originalname,
+    referenceSyncRequested: audioType === 'karaoke' && Boolean(referenceFile),
+    referenceTrackName: referenceFile ? cleanText(referenceFile.originalname, 240) : '',
     createdAt: Date.now(),
     previewToken: crypto.randomBytes(24).toString('hex'),
     asset: null,
@@ -423,13 +481,14 @@ app.post('/api/uploads', adminAuth, upload.single('file'), async (req, res) => {
   await store.save();
   res.status(202).json({ job: publicJob(job) });
 
-  processUpload(job, req.file.path).catch(async err => {
+  processUpload(job, audioFile.path, referenceFile?.path || null).catch(async err => {
     job.stage = 'failed';
     job.error = err.message || String(err);
     job.finishedAt = Date.now();
     await cleanupJobFiles(job);
     await store.save();
-    await fs.rm(req.file.path, { force: true }).catch(() => {});
+    await fs.rm(audioFile.path, { force: true }).catch(() => {});
+    if (referenceFile) await fs.rm(referenceFile.path, { force: true }).catch(() => {});
   });
 });
 
@@ -579,7 +638,149 @@ async function markApprovedReady(job) {
   await resolveLyricsForJob(job);
 }
 
-async function processUploadedVideo(job, inputPath, originalName) {
+function recordReferenceSync(job, sync) {
+  job.referenceSyncApplied = sync?.applied === true;
+  job.referenceSyncConfidence = Number(sync?.confidence) || 0;
+  job.referenceSyncAnchors = Number(sync?.anchor_count ?? sync?.anchors?.length) || 0;
+  job.referenceSyncGlobalOffset = Number(sync?.global_offset) || 0;
+  job.referenceSyncPitchShift = Number(sync?.pitch_shift_semitones) || 0;
+  job.referenceSyncTempoRatio = Number(sync?.tempo_ratio) || 1;
+  job.referenceSyncMethod = cleanText(sync?.method || '', 120);
+  job.referenceSyncReason = cleanText(sync?.reason || '', 500);
+  job.referenceSyncMap = Array.isArray(sync?.anchors)
+    ? sync.anchors.map(a => ({
+        reference: Number(a.reference),
+        karaoke: Number(a.karaoke),
+        score: Number(a.score) || 0,
+      })).filter(a => Number.isFinite(a.reference) && Number.isFinite(a.karaoke))
+    : [];
+}
+
+async function buildLyricsFromOriginalReference(job, referencePath, karaokeAudio) {
+  let referenceWorkDir = null;
+
+  try {
+    job.stage = 'reference_separating';
+    job.referenceSyncReason = 'Separating the original studio reference so EST can compare accompaniment-to-accompaniment.';
+    await store.save();
+
+    const separated = await createInstrumentalFromOriginal({
+      input: referencePath,
+      workRoot: separationDir,
+      jobId: `${job.id}-reference`,
+      ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+      ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
+    });
+
+    referenceWorkDir = separated.workDir;
+    job.referenceDuration = Number(separated.originalDuration.toFixed(3));
+    job.referenceSeparationModel = separated.model;
+    await store.save();
+
+    // LRCLIB should be matched against the studio reference, not the karaoke
+    // file whose intro/arrangement may be different.
+    job.stage = 'reference_lyrics';
+    job.lyricsError = undefined;
+    await store.save();
+
+    const lyricResult = await resolveLyrics({
+      title: job.title,
+      artist: job.artist,
+      duration: job.referenceDuration,
+    });
+
+    const baseLyrics = lyricResult.lines;
+    job.lyricsSource = lyricResult.source;
+    job.lyrics = baseLyrics;
+    job.lyricOffset = 0;
+    await store.save();
+
+    job.stage = 'reference_sync';
+    await store.save();
+
+    let sync;
+    try {
+      sync = await analyzeReferenceTrackSync({
+        referenceInstrumental: separated.file,
+        karaokeAudio,
+        workDir: referenceWorkDir,
+        ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+      });
+    } catch (err) {
+      sync = {
+        applied: false,
+        confidence: 0,
+        anchors: [],
+        global_offset: 0,
+        reason: `Original-track comparison could not be completed: ${err.message || String(err)}`,
+        method: 'demucs-accompaniment-chroma-anchor-v1',
+      };
+    }
+
+    recordReferenceSync(job, sync);
+
+    if (job.referenceSyncApplied && job.referenceSyncMap.length >= 2) {
+      job.lyrics = applyReferenceTimeMap(baseLyrics, job.referenceSyncMap);
+      job.lyricsSource = `${lyricResult.source} • original-track synced`;
+      job.lyricOffset = 0;
+    } else {
+      // Safe fallback: keep LRCLIB timing untouched. Video sync and/or manual
+      // Global Lyric Offset can still correct the target later.
+      job.lyrics = baseLyrics;
+      job.lyricOffset = 0;
+    }
+    await store.save();
+
+    return {
+      applied: job.referenceSyncApplied,
+      lyrics: job.lyrics,
+      referenceDuration: job.referenceDuration,
+    };
+  } finally {
+    if (referenceWorkDir) {
+      await fs.rm(referenceWorkDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+}
+
+function applyVideoSyncAsResidual(job, sync) {
+  job.videoSyncApplied = sync.applied === true;
+  job.videoSyncOffset = sync.applied ? Number(sync.offset) || 0 : 0;
+  job.videoSyncSuggestedOffset = Number(sync.suggestedOffset ?? sync.offset) || 0;
+  job.videoSyncConfidence = Number(sync.confidence) || 0;
+  job.videoSyncAnchors = Number(sync.matchedAnchors) || 0;
+  job.videoSyncDetectedEvents = Number(sync.detectedEvents) || 0;
+  job.videoSyncReason = cleanText(sync.reason, 500);
+
+  if (!job.videoSyncApplied) return;
+
+  if (!job.referenceSyncApplied) {
+    // Original behavior when no reference-track map was accepted.
+    job.lyricOffset = Number(job.videoSyncOffset.toFixed(3));
+    return;
+  }
+
+  // With original-track sync already applied, video analysis becomes a second
+  // independent verifier and only auto-applies a modest residual correction.
+  // Large disagreements are surfaced for manual review instead of stacking two
+  // potentially incompatible automatic shifts.
+  if (Math.abs(job.videoSyncOffset) <= 2.5) {
+    job.lyricOffset = Number(job.videoSyncOffset.toFixed(3));
+    job.videoSyncReason = cleanText(
+      `${job.videoSyncReason || 'Video highlight sync accepted.'} Applied as residual correction after original-track sync.`,
+      500,
+    );
+  } else {
+    job.videoSyncApplied = false;
+    job.lyricOffset = 0;
+    job.videoSyncReason = cleanText(
+      `Video highlights disagreed with original-track sync by ${job.videoSyncSuggestedOffset >= 0 ? '+' : ''}${job.videoSyncSuggestedOffset.toFixed(2)}s. EST kept the original-track map and left this for Review.`,
+      500,
+    );
+  }
+}
+
+async function processUploadedVideo(job, inputPath, originalName, referencePath = null) {
   const client = getUploaderClient(job);
   let workDir = null;
 
@@ -605,20 +806,24 @@ async function processUploadedVideo(job, inputPath, originalName) {
     job.timelineDifferenceMs = 0;
     await store.save();
 
-    job.stage = 'video_lyrics';
-    job.lyricsError = undefined;
-    await store.save();
+    if (referencePath) {
+      await buildLyricsFromOriginalReference(job, referencePath, prepared.audioFile);
+    } else {
+      job.stage = 'video_lyrics';
+      job.lyricsError = undefined;
+      await store.save();
 
-    const lyricResult = await resolveLyrics({
-      title: job.title,
-      artist: job.artist,
-      duration: job.duration,
-    });
+      const lyricResult = await resolveLyrics({
+        title: job.title,
+        artist: job.artist,
+        duration: job.duration,
+      });
 
-    job.lyrics = lyricResult.lines;
-    job.lyricsSource = lyricResult.source;
-    job.lyricOffset = 0;
-    await store.save();
+      job.lyrics = lyricResult.lines;
+      job.lyricsSource = lyricResult.source;
+      job.lyricOffset = 0;
+      await store.save();
+    }
 
     job.stage = 'video_sync';
     await store.save();
@@ -629,17 +834,7 @@ async function processUploadedVideo(job, inputPath, originalName) {
       workDir: prepared.workDir,
     });
 
-    job.videoSyncApplied = sync.applied === true;
-    job.videoSyncOffset = sync.applied ? Number(sync.offset) || 0 : 0;
-    job.videoSyncSuggestedOffset = Number(sync.suggestedOffset ?? sync.offset) || 0;
-    job.videoSyncConfidence = Number(sync.confidence) || 0;
-    job.videoSyncAnchors = Number(sync.matchedAnchors) || 0;
-    job.videoSyncDetectedEvents = Number(sync.detectedEvents) || 0;
-    job.videoSyncReason = cleanText(sync.reason, 500);
-
-    if (job.videoSyncApplied) {
-      job.lyricOffset = Number(job.videoSyncOffset.toFixed(3));
-    }
+    applyVideoSyncAsResidual(job, sync);
     await store.save();
 
     job.stage = 'processing';
@@ -696,6 +891,7 @@ async function processUploadedVideo(job, inputPath, originalName) {
     monitorModeration(job).catch(err => console.error('[moderation]', err));
   } finally {
     await fs.rm(inputPath, { force: true }).catch(() => {});
+    if (referencePath) await fs.rm(referencePath, { force: true }).catch(() => {});
     if (workDir) {
       await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
@@ -705,6 +901,7 @@ async function processUploadedVideo(job, inputPath, originalName) {
 async function processYoutubeImport(job) {
   const client = getUploaderClient(job);
   let workDir = null;
+  let referenceYoutubeWorkDir = null;
 
   try {
     job.stage = 'video_fetching';
@@ -728,22 +925,43 @@ async function processYoutubeImport(job) {
     job.timelineDifferenceMs = 0;
     await store.save();
 
-    // We fetch LRCLIB before Roblox because the lyric-line timestamps are also
-    // the reference sequence used to estimate the karaoke video's added intro.
-    job.stage = 'video_lyrics';
-    job.lyricsError = undefined;
-    await store.save();
+    // If an original studio YouTube link was supplied, download its audio,
+    // use it to select LRCLIB timing, remove its vocals, and map that timeline
+    // onto the karaoke video's actual audio before visual highlight analysis.
+    if (job.referenceYoutubeUrl) {
+      job.stage = 'reference_fetching';
+      await store.save();
 
-    const lyricResult = await resolveLyrics({
-      title: job.title,
-      artist: job.artist,
-      duration: job.duration,
-    });
+      const referenceDownloaded = await downloadYoutubeReferenceAudio({
+        url: job.referenceYoutubeUrl,
+        workRoot: youtubeDir,
+        jobId: job.id,
+        ffmpeg: process.env.FFMPEG_BIN || 'ffmpeg',
+        ffprobe: process.env.FFPROBE_BIN || 'ffprobe',
+      });
+      referenceYoutubeWorkDir = referenceDownloaded.workDir;
+      job.referenceYoutubeTitle = referenceDownloaded.videoTitle;
+      job.referenceTrackName = referenceDownloaded.videoTitle;
+      await store.save();
 
-    job.lyrics = lyricResult.lines;
-    job.lyricsSource = lyricResult.source;
-    job.lyricOffset = 0;
-    await store.save();
+      await buildLyricsFromOriginalReference(job, referenceDownloaded.audioFile, downloaded.audioFile);
+    } else {
+      // Existing flow with LRCLIB and visual video timing.
+      job.stage = 'video_lyrics';
+      job.lyricsError = undefined;
+      await store.save();
+
+      const lyricResult = await resolveLyrics({
+        title: job.title,
+        artist: job.artist,
+        duration: job.duration,
+      });
+
+      job.lyrics = lyricResult.lines;
+      job.lyricsSource = lyricResult.source;
+      job.lyricOffset = 0;
+      await store.save();
+    }
 
     job.stage = 'video_sync';
     await store.save();
@@ -754,20 +972,7 @@ async function processYoutubeImport(job) {
       workDir: downloaded.workDir,
     });
 
-    job.videoSyncApplied = sync.applied === true;
-    job.videoSyncOffset = sync.applied ? Number(sync.offset) || 0 : 0;
-    job.videoSyncSuggestedOffset = Number(sync.suggestedOffset ?? sync.offset) || 0;
-    job.videoSyncConfidence = Number(sync.confidence) || 0;
-    job.videoSyncAnchors = Number(sync.matchedAnchors) || 0;
-    job.videoSyncDetectedEvents = Number(sync.detectedEvents) || 0;
-    job.videoSyncReason = cleanText(sync.reason, 500);
-
-    // Auto-fill Global Lyric Offset only when several independent highlight
-    // anchors support the same timeline shift. Review still lets the user
-    // adjust/reset this value normally.
-    if (job.videoSyncApplied) {
-      job.lyricOffset = Number(job.videoSyncOffset.toFixed(3));
-    }
+    applyVideoSyncAsResidual(job, sync);
     await store.save();
 
     job.stage = 'processing';
@@ -826,10 +1031,13 @@ async function processYoutubeImport(job) {
     if (workDir) {
       await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
+    if (referenceYoutubeWorkDir) {
+      await fs.rm(referenceYoutubeWorkDir, { recursive: true, force: true }).catch(() => {});
+    }
   }
 }
 
-async function processUpload(job, inputPath) {
+async function processUpload(job, inputPath, referencePath = null) {
   const client = getUploaderClient(job);
   let separationWorkDir = null;
 
@@ -864,6 +1072,17 @@ async function processUpload(job, inputPath) {
       // For original uploads, try LRCLIB immediately after the timeline-safe
       // instrumental is created, as requested.
       await prefetchLyricsForOriginal(job);
+    } else if (referencePath) {
+      // Enhanced Karaoke Audio mode: perform original-reference comparison
+      // before the target is sent to Roblox moderation.
+      const targetDuration = await probeDuration(inputPath, process.env.FFPROBE_BIN || 'ffprobe');
+      job.duration = Number(targetDuration.toFixed(3));
+      job.originalDuration = job.duration;
+      job.instrumentalDuration = job.duration;
+      job.timelineDifferenceMs = 0;
+      await store.save();
+
+      await buildLyricsFromOriginalReference(job, referencePath, inputPath);
     }
 
     job.stage = 'processing';
@@ -929,6 +1148,7 @@ async function processUpload(job, inputPath) {
     monitorModeration(job).catch(err => console.error('[moderation]', err));
   } finally {
     await fs.rm(inputPath, { force: true }).catch(() => {});
+    if (referencePath) await fs.rm(referencePath, { force: true }).catch(() => {});
     if (separationWorkDir) {
       await fs.rm(separationWorkDir, { recursive: true, force: true }).catch(() => {});
     }
@@ -974,9 +1194,18 @@ async function resolveLyricsForJob(job) {
   job.lyricsError = undefined;
   await store.save();
   try {
-    const result = await resolveLyrics({ title: job.title, artist: job.artist, duration: job.duration });
-    job.lyrics = result.lines;
-    job.lyricsSource = result.source;
+    const result = await resolveLyrics({
+      title: job.title,
+      artist: job.artist,
+      duration: Number(job.referenceDuration) || job.duration,
+    });
+    if (job.referenceSyncApplied && Array.isArray(job.referenceSyncMap) && job.referenceSyncMap.length >= 2) {
+      job.lyrics = applyReferenceTimeMap(result.lines, job.referenceSyncMap);
+      job.lyricsSource = `${result.source} • original-track synced`;
+    } else {
+      job.lyrics = result.lines;
+      job.lyricsSource = result.source;
+    }
     job.lyricOffset = 0;
     job.stage = 'review';
     job.reviewReadyAt = Date.now();
@@ -1061,6 +1290,13 @@ async function finalizeIntoLibrary(job) {
     sourceType: job.sourceType || 'upload',
     videoSyncOffset: Number(job.videoSyncOffset) || 0,
     videoSyncConfidence: Number(job.videoSyncConfidence) || 0,
+    referenceSyncApplied: job.referenceSyncApplied === true,
+    referenceSyncConfidence: Number(job.referenceSyncConfidence) || 0,
+    referenceSyncAnchors: Number(job.referenceSyncAnchors) || 0,
+    referenceSyncGlobalOffset: Number(job.referenceSyncGlobalOffset) || 0,
+    referenceSyncPitchShift: Number(job.referenceSyncPitchShift) || 0,
+    referenceSyncTempoRatio: Number(job.referenceSyncTempoRatio) || 1,
+    referenceSyncMethod: job.referenceSyncMethod || null,
     separationModel: job.separationModel || null,
     originalDuration: job.originalDuration || job.duration,
     instrumentalDuration: job.instrumentalDuration || job.duration,
