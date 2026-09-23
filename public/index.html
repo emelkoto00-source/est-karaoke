@@ -74,7 +74,7 @@
     <div class="card"><h3>Upload queue</h3><div class="sub">Original: AI Karaoke → Lyrics → Roblox → Review → Access → KTV<br>Karaoke: optional Original Reference → AI Timeline Sync → Roblox → Review → KTV<br>YouTube: Karaoke Link + optional Original Link → AI Timeline Sync → Video Check → Roblox → KTV<br>Video Upload: Video + optional Original Track → AI Timeline Sync → Video Check → Roblox → KTV</div><div id="queue" class="queue"></div></div>
   </section>
 
-  <section id="libraryTab" class="card hidden"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h3>KTV Library</h3><div class="sub">Songs currently available to Roblox karaoke servers.</div></div><button id="refreshLibrary" class="secondary">Refresh</button></div><div id="library" class="library" style="margin-top:14px"></div></section>
+  <section id="libraryTab" class="card hidden"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><div><h3>KTV Library</h3><div class="sub">Songs currently available to Roblox karaoke servers.</div><div id="storageStatus" class="sub" style="margin-top:4px"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="backupLibrary" class="secondary">Download Backup</button><button id="restoreLibrary" class="secondary">Restore Backup</button><input id="restoreLibraryFile" type="file" accept="application/json,.json" class="hidden"><button id="refreshLibrary" class="secondary">Refresh</button></div></div><div id="libraryBackupMsg" class="sub" style="margin-top:10px"></div><div id="library" class="library" style="margin-top:14px"></div></section>
 </div>
 
 <div id="reviewModal" class="modal"><div class="modalbox">
@@ -146,7 +146,20 @@ function refreshReferenceSyncFields(){
 }
 $('#enableReferenceSync')?.addEventListener('change',refreshReferenceSyncFields);
 $('#audioModePicker')?.addEventListener('change',refreshAudioMode);
-async function boot(){try{health=await fetch('/api/health').then(r=>r.json());$('#connection').textContent=health.ok?'Connected to KTV backend':'Backend unavailable';$('#connection').classList.toggle('ok',health.ok);renderUploaders();await loadJobs();await loadLibrary();setLogin(false);if(jobsTimer)clearInterval(jobsTimer);jobsTimer=setInterval(loadJobs,3000)}catch(e){setLogin(true,e.message)}}
+async function boot(){try{health=await fetch('/api/health').then(r=>r.json());$('#connection').textContent=health.ok?'Connected to KTV backend':'Backend unavailable';$('#connection').classList.toggle('ok',health.ok);renderUploaders();renderStorageStatus();await loadJobs();await loadLibrary();setLogin(false);if(jobsTimer)clearInterval(jobsTimer);jobsTimer=setInterval(loadJobs,3000)}catch(e){setLogin(true,e.message)}}
+function renderStorageStatus(){
+  const el=$('#storageStatus');
+  if(!el)return;
+  const s=health?.libraryStorage;
+  if(!s){el.textContent='Storage status unavailable';return}
+  if(s.mode==='external-postgres'){
+    el.textContent=`Durable storage: External PostgreSQL • automatic snapshots ON (${Number(s.maxSnapshots||0)} retained)`;
+    el.style.color='#5ee6a8';
+  }else{
+    el.textContent='WARNING: temporary Railway filesystem storage — configure EST_DATABASE_URL for disaster-safe persistence';
+    el.style.color='#ffd98a';
+  }
+}
 $('#loginBtn').onclick=()=>{token=$('#password').value;sessionStorage.setItem('ktvAdmin',token);boot().catch(e=>setLogin(true,e.message))};
 $('.tabs')?.addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));const lib=b.dataset.tab==='library';$('#uploadTab').classList.toggle('hidden',lib);$('#libraryTab').classList.toggle('hidden',!lib);if(lib)loadLibrary()});
 $('#uploadBtn').onclick=async()=>{
@@ -321,6 +334,49 @@ function renderJob(job){
 async function loadJobs(){if(!token)return;try{const d=await api('/api/jobs');const q=$('#queue');q.innerHTML='';if(!d.jobs.length)q.innerHTML='<div class="sub">No uploads yet.</div>';for(const j of d.jobs.slice(0,30))q.appendChild(renderJob(j));}catch(e){if(/Admin password/.test(e.message)){sessionStorage.removeItem('ktvAdmin');setLogin(true,'Password required.')}}}
 async function loadLibrary(){if(!token)return;try{const d=await api('/api/library');const el=$('#library');el.innerHTML='';if(!d.songs.length)el.innerHTML='<div class="sub">No KTV songs yet.</div>';for(const s of d.songs){const row=document.createElement('div');row.className='song';row.innerHTML=`<div><div><span class="num">${safe(s.number)}</span> <b>${safe(s.title)}</b></div><div class="sub">${safe(s.artist)} • ${Number(s.speed||1).toFixed(1)}× • ${s.sourceType==='youtube'?'YouTube karaoke':s.sourceType==='video'?'video karaoke':s.audioType==='original'?'AI instrumental':'karaoke upload'} • ${safe(s.sourceUploader||'')}</div></div><button class="danger">Delete</button>`;row.querySelector('button').onclick=async()=>{if(!confirm(`Remove ${s.title} from the live KTV library?`))return;await api(`/api/library/${encodeURIComponent(s.number)}`,{method:'DELETE'});loadLibrary()};el.appendChild(row)}}catch(e){}}
 $('#refreshLibrary').onclick=loadLibrary;
+
+$('#backupLibrary').onclick=async()=>{
+  const msg=$('#libraryBackupMsg');
+  try{
+    msg.textContent='Preparing backup...';
+    const r=await fetch('/api/library/backup',{headers:authHeaders()});
+    if(!r.ok){
+      let e={};try{e=await r.json()}catch{}
+      throw new Error(e.error||`Backup failed (${r.status})`);
+    }
+    const blob=await r.blob();
+    const disposition=r.headers.get('content-disposition')||'';
+    const m=disposition.match(/filename="?([^"]+)"?/i);
+    const name=m?.[1]||`est-karaoke-library-${new Date().toISOString().slice(0,10)}.json`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    msg.textContent='Backup downloaded. Keep this file somewhere outside Railway.';
+  }catch(e){msg.textContent=e.message}
+};
+
+$('#restoreLibrary').onclick=()=>$('#restoreLibraryFile').click();
+$('#restoreLibraryFile').onchange=async e=>{
+  const msg=$('#libraryBackupMsg');
+  const file=e.target.files?.[0];
+  if(!file)return;
+  try{
+    const text=await file.text();
+    const backup=JSON.parse(text);
+    const songs=Array.isArray(backup.library)?backup.library:Array.isArray(backup.songs)?backup.songs:null;
+    if(!songs)throw new Error('This is not a valid EST library backup.');
+    if(!confirm(`Restore ${songs.length} song(s) from this backup? This replaces the current KTV library.`))return;
+    msg.textContent='Restoring backup...';
+    const d=await api('/api/library/import',{method:'POST',body:JSON.stringify(backup)});
+    msg.textContent=`Restored ${d.songs} song(s).`;
+    await loadLibrary();
+  }catch(err){
+    msg.textContent=err.message;
+  }finally{
+    e.target.value='';
+  }
+};
 function stopPreviewAnimation(){
   if(previewRaf){
     cancelAnimationFrame(previewRaf);
