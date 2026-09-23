@@ -138,7 +138,8 @@ app.get('/api/health', (req, res) => {
     robloxConfigured: [...uploaderProfiles.values()].some(p => p.client.configured),
     uploaders: uploaderPublicInfo(),
     estUniverseConfigured: Boolean(String(process.env.EST_UNIVERSE_ID || '').trim()),
-    lyricsConfigured: Boolean(String(process.env.LYRICS_PROVIDER_URL || '').trim()) || String(process.env.LYRICS_SIMULATION || '').toLowerCase() === 'true',
+    lyricsConfigured: true,
+    lyricsProvider: 'LRCLIB',
     gameSyncConfigured: Boolean(process.env.GAME_SYNC_TOKEN),
     speedPresets,
   });
