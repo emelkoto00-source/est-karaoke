@@ -158,6 +158,20 @@ async function findDownloadedVideo(workDir) {
   return stats[0].file;
 }
 
+async function findDownloadedAudio(workDir) {
+  const entries = await fs.readdir(workDir, { withFileTypes: true });
+  const candidates = entries
+    .filter(e => e.isFile() && /^reference\.(mp3|m4a|webm|opus|ogg|wav)$/i.test(e.name))
+    .map(e => path.join(workDir, e.name));
+
+  if (!candidates.length) return null;
+  const stats = await Promise.all(
+    candidates.map(async file => ({ file, stat: await fs.stat(file) }))
+  );
+  stats.sort((a, b) => b.stat.size - a.stat.size);
+  return stats[0].file;
+}
+
 export async function downloadYoutubeKaraoke({
   url,
   workRoot,
@@ -264,6 +278,89 @@ export async function downloadYoutubeKaraoke({
   return {
     workDir,
     videoFile,
+    audioFile,
+    duration: audioDuration,
+    videoTitle: String(metadata.title || ''),
+    channel: String(metadata.channel || metadata.uploader || ''),
+    webpageUrl: String(metadata.webpage_url || safeUrl),
+  };
+}
+
+export async function downloadYoutubeReferenceAudio({
+  url,
+  workRoot,
+  jobId,
+  ffmpeg = 'ffmpeg',
+  ffprobe = 'ffprobe',
+  python = process.env.VIDEO_SYNC_PYTHON || process.env.DEMUCS_PYTHON || '/opt/demucs/bin/python',
+}) {
+  const safeUrl = safeYoutubeUrl(url);
+  const workDir = path.join(workRoot, `${jobId}-reference`);
+
+  await fs.rm(workDir, { recursive: true, force: true });
+  await fs.mkdir(workDir, { recursive: true });
+
+  const cookieFile = await prepareYoutubeCookies(workDir);
+  const authArgs = cookieArgs(cookieFile);
+  const maxDuration = Math.max(60, Number(process.env.YOUTUBE_REFERENCE_MAX_DURATION_SECONDS || 900));
+
+  let metadataResult;
+  try {
+    metadataResult = await runCapture(python, [
+      '-m', 'yt_dlp',
+      ...authArgs,
+      '--dump-single-json',
+      '--skip-download',
+      '--no-playlist',
+      '--no-warnings',
+      safeUrl,
+    ], { cwd: workDir, timeoutMs: 2 * 60 * 1000 });
+  } catch (err) {
+    throw makeYoutubeError(err, Boolean(cookieFile));
+  }
+
+  let metadata;
+  try {
+    metadata = JSON.parse(metadataResult.stdout.trim());
+  } catch {
+    throw new Error('Original-reference YouTube metadata could not be read.');
+  }
+
+  const duration = Number(metadata.duration || 0);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error('Could not determine the original-reference YouTube duration.');
+  }
+  if (duration > maxDuration) {
+    throw new Error(`Original-reference YouTube track is ${Math.round(duration)}s. Maximum allowed is ${Math.round(maxDuration)}s.`);
+  }
+
+  try {
+    await runCapture(python, [
+      '-m', 'yt_dlp',
+      ...authArgs,
+      '--no-playlist',
+      '--no-warnings',
+      '--no-part',
+      '-f', 'ba/b',
+      '-o', path.join(workDir, 'reference.%(ext)s'),
+      safeUrl,
+    ], { cwd: workDir, timeoutMs: 10 * 60 * 1000 });
+  } catch (err) {
+    throw makeYoutubeError(err, Boolean(cookieFile));
+  }
+
+  const downloaded = await findDownloadedAudio(workDir);
+  if (!downloaded) throw new Error('Original-reference YouTube download finished, but no audio file was found.');
+
+  // Normalize only the container/codec, never the timeline.
+  const audioFile = path.join(workDir, 'reference-original.mp3');
+  await runCapture(ffmpeg, [
+    '-y', '-i', downloaded, '-vn', '-c:a', 'libmp3lame', '-b:a', process.env.OUTPUT_BITRATE || '192k', audioFile,
+  ], { cwd: workDir, timeoutMs: 5 * 60 * 1000 });
+
+  const audioDuration = await probeDuration(audioFile, ffprobe);
+  return {
+    workDir,
     audioFile,
     duration: audioDuration,
     videoTitle: String(metadata.title || ''),
