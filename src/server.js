@@ -829,6 +829,38 @@ function applyVideoSyncAsResidual(job, sync) {
   }
 }
 
+async function runVideoSyncSafely(job, { videoFile, lyrics, workDir }) {
+  try {
+    const sync = await analyzeKaraokeVideoSync({
+      videoFile,
+      lyrics,
+      workDir,
+    });
+    applyVideoSyncAsResidual(job, sync);
+  } catch (err) {
+    // Video highlight analysis is a SECONDARY verifier. A codec/decoder/CV
+    // problem must never throw away a good LRCLIB result or a successful
+    // original-track reference sync.
+    const message = String(err?.message || err || 'unknown video-analysis error')
+      .replace(/\s+/g, ' ')
+      .slice(0, 280);
+
+    job.videoSyncApplied = false;
+    job.videoSyncOffset = 0;
+    job.videoSyncSuggestedOffset = 0;
+    job.videoSyncConfidence = 0;
+    job.videoSyncAnchors = 0;
+    job.videoSyncDetectedEvents = 0;
+
+    job.videoSyncReason = cleanText(
+      job.referenceSyncApplied
+        ? `Video highlight check skipped: ${message}. Original-track synchronization remains active.`
+        : `Video highlight check skipped: ${message}. LRCLIB timing remains active; use Global Lyric Offset in Review if needed.`,
+      500,
+    );
+  }
+}
+
 async function processUploadedVideo(job, inputPath, originalName, referencePath = null) {
   const client = getUploaderClient(job);
   let workDir = null;
@@ -877,13 +909,11 @@ async function processUploadedVideo(job, inputPath, originalName, referencePath 
     job.stage = 'video_sync';
     await store.save();
 
-    const sync = await analyzeKaraokeVideoSync({
+    await runVideoSyncSafely(job, {
       videoFile: prepared.videoFile,
       lyrics: job.lyrics,
       workDir: prepared.workDir,
     });
-
-    applyVideoSyncAsResidual(job, sync);
     await store.save();
 
     job.stage = 'processing';
@@ -1015,13 +1045,11 @@ async function processYoutubeImport(job) {
     job.stage = 'video_sync';
     await store.save();
 
-    const sync = await analyzeKaraokeVideoSync({
+    await runVideoSyncSafely(job, {
       videoFile: downloaded.videoFile,
       lyrics: job.lyrics,
       workDir: downloaded.workDir,
     });
-
-    applyVideoSyncAsResidual(job, sync);
     await store.save();
 
     job.stage = 'processing';
