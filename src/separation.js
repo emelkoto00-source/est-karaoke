@@ -96,7 +96,7 @@ async function separateNow({
     // memory lower while preserving the exact source timeline.
     '-j', '1',
     '--shifts', '1',
-    '--segment', process.env.DEMUCS_SEGMENT || '7.0',
+    '--segment', process.env.DEMUCS_SEGMENT || '7',
 
     '--out', demucsOut,
     prepared,
