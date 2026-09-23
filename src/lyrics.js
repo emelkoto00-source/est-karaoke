@@ -121,65 +121,195 @@ export function finalizeLyrics(lines, duration = 0) {
   }));
 }
 
-function findLyricsPayload(data) {
-  if (!data || typeof data !== 'object') return null;
-  const lrc = data.syncedLyrics ?? data.lrc ?? data.synced_lyrics ?? data.result?.syncedLyrics ?? data.result?.lrc ?? data.data?.syncedLyrics ?? data.data?.lrc;
-  if (typeof lrc === 'string' && lrc.trim()) return { kind: 'lrc', value: lrc };
-  const lines = data.lines ?? data.result?.lines ?? data.data?.lines ?? data.lyrics?.lines;
-  if (Array.isArray(lines)) return { kind: 'lines', value: lines };
-  return null;
+function normalizeKey(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
 }
 
-function simulationLyrics(duration) {
-  const d = Math.max(20, Number(duration) || 60);
-  return finalizeLyrics([
-    { start: Math.min(2, d * 0.05), text: 'KTV automatic lyric preview' },
-    { start: Math.min(6, d * 0.15), text: 'Timing provider connected successfully' },
-    { start: Math.min(11, d * 0.28), text: 'Words highlight across the current line' },
-    { start: Math.min(16, d * 0.42), text: 'Review the timing before adding to KTV' },
-  ], d);
+function candidateScore(item, title, artist, duration) {
+  const wantedTitle = normalizeKey(title);
+  const wantedArtist = normalizeKey(artist);
+  const gotTitle = normalizeKey(item?.trackName ?? item?.name);
+  const gotArtist = normalizeKey(item?.artistName);
+
+  let score = 0;
+
+  if (gotTitle === wantedTitle) score += 120;
+  else if (gotTitle.includes(wantedTitle) || wantedTitle.includes(gotTitle)) score += 55;
+
+  if (gotArtist === wantedArtist) score += 100;
+  else if (gotArtist.includes(wantedArtist) || wantedArtist.includes(gotArtist)) score += 45;
+
+  if (typeof item?.syncedLyrics === 'string' && item.syncedLyrics.trim()) score += 80;
+
+  const wantedDuration = Number(duration);
+  const gotDuration = Number(item?.duration);
+  if (Number.isFinite(wantedDuration) && wantedDuration > 0 &&
+      Number.isFinite(gotDuration) && gotDuration > 0) {
+    const diff = Math.abs(gotDuration - wantedDuration);
+    if (diff <= 1) score += 40;
+    else if (diff <= 3) score += 30;
+    else if (diff <= 8) score += 15;
+    else if (diff > 30) score -= 30;
+  }
+
+  return score;
 }
 
-export async function resolveLyrics({ title, artist, duration, env = process.env }) {
-  if (String(env.LYRICS_SIMULATION || '').toLowerCase() === 'true') {
-    return { lines: simulationLyrics(duration), source: 'simulation', automatic: true };
-  }
+function lrclibHeaders(env) {
+  const publicUrl = String(env.PUBLIC_BASE_URL || '').trim();
+  const configured = String(env.LRCLIB_USER_AGENT || '').trim();
+  const userAgent = configured ||
+    `EST-Karaoke/1.0${publicUrl ? ` (${publicUrl})` : ''}`;
 
-  const base = String(env.LYRICS_PROVIDER_URL || '').trim();
-  if (!base) {
-    throw new Error('Automatic lyrics are not configured yet. Set LYRICS_PROVIDER_URL on Railway.');
-  }
+  return {
+    Accept: 'application/json',
+    'User-Agent': userAgent,
+  };
+}
 
-  const url = new URL(base);
-  url.searchParams.set('title', String(title || ''));
-  url.searchParams.set('artist', String(artist || ''));
+async function lrclibJson(url, env) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(2000, Number(env.LYRICS_PROVIDER_TIMEOUT_MS || 12000)));
-  const headers = { Accept: 'application/json' };
-  if (env.LYRICS_PROVIDER_TOKEN) headers.Authorization = `Bearer ${env.LYRICS_PROVIDER_TOKEN}`;
+  const timeoutMs = Math.max(2000, Number(env.LRCLIB_TIMEOUT_MS || 12000));
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  let res;
+  let response;
   try {
-    res = await fetch(url, { headers, signal: controller.signal });
+    response = await fetch(url, {
+      method: 'GET',
+      headers: lrclibHeaders(env),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`LRCLIB timed out after ${timeoutMs}ms.`);
+    }
+    throw new Error(`LRCLIB request failed: ${error?.message || String(error)}`);
   } finally {
     clearTimeout(timeout);
   }
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const message = data?.message || data?.error || `Lyrics provider failed (${res.status}).`;
-    throw new Error(String(message));
+  if (response.status === 404) return null;
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail =
+      (data && typeof data === 'object' && (data.message || data.error)) ||
+      `HTTP ${response.status}`;
+    throw new Error(`LRCLIB request failed (${detail}).`);
   }
 
-  const payload = findLyricsPayload(data);
-  if (!payload) throw new Error('Lyrics provider returned no synchronized lyrics for this title/artist.');
-  const rawLines = payload.kind === 'lrc' ? parseLrc(payload.value) : payload.value;
+  return data;
+}
+
+async function searchLrclib({ title, artist, duration, env, includeDuration }) {
+  const base = String(env.LRCLIB_BASE_URL || 'https://lrclib.net/api').replace(/\/+$/, '');
+  const url = new URL(`${base}/search`);
+  url.searchParams.set('track_name', String(title || '').trim());
+  url.searchParams.set('artist_name', String(artist || '').trim());
+
+  const seconds = Math.round(Number(duration));
+  if (includeDuration && Number.isFinite(seconds) && seconds > 0) {
+    url.searchParams.set('duration', String(seconds));
+  }
+
+  const data = await lrclibJson(url, env);
+  return Array.isArray(data) ? data : [];
+}
+
+async function getLrclibById(id, env) {
+  if (id == null || id === '') return null;
+  const base = String(env.LRCLIB_BASE_URL || 'https://lrclib.net/api').replace(/\/+$/, '');
+  return lrclibJson(`${base}/get/${encodeURIComponent(String(id))}`, env);
+}
+
+export async function resolveLyrics({ title, artist, duration, env = process.env }) {
+  const cleanTitle = String(title || '').trim();
+  const cleanArtist = String(artist || '').trim();
+
+  if (!cleanTitle || !cleanArtist) {
+    throw new Error('Title and artist are required for automatic LRCLIB lyrics.');
+  }
+
+  // First try the most precise LRCLIB search: title + artist + rounded duration.
+  // Karaoke versions can differ slightly, so if that is too strict, retry using
+  // title + artist only and rank the returned versions locally.
+  let results = await searchLrclib({
+    title: cleanTitle,
+    artist: cleanArtist,
+    duration,
+    env,
+    includeDuration: true,
+  });
+
+  if (!results.length) {
+    results = await searchLrclib({
+      title: cleanTitle,
+      artist: cleanArtist,
+      duration,
+      env,
+      includeDuration: false,
+    });
+  }
+
+  if (!results.length) {
+    throw new Error(`LRCLIB found no match for "${cleanTitle}" by "${cleanArtist}".`);
+  }
+
+  const ranked = results
+    .map(item => ({
+      item,
+      score: candidateScore(item, cleanTitle, cleanArtist, duration),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  let selected = ranked[0]?.item || null;
+  if (!selected) {
+    throw new Error('LRCLIB returned search results, but none could be selected.');
+  }
+
+  // /api/search normally already carries syncedLyrics. Use /api/get/{id}
+  // as a full-detail fallback when the search result has no synchronized text.
+  if (!(typeof selected.syncedLyrics === 'string' && selected.syncedLyrics.trim())) {
+    const detail = await getLrclibById(selected.id, env);
+    if (detail && typeof detail === 'object') {
+      selected = { ...selected, ...detail };
+    }
+  }
+
+  const lrc = String(selected.syncedLyrics || '').trim();
+  if (!lrc) {
+    if (selected.instrumental === true) {
+      throw new Error('LRCLIB matched this track as instrumental and returned no synchronized lyrics.');
+    }
+    throw new Error('LRCLIB found the song, but no synchronized lyrics are available for this version.');
+  }
+
+  const rawLines = parseLrc(lrc);
   const lines = finalizeLyrics(rawLines, duration);
-  if (!lines.length) throw new Error('Lyrics were found, but no usable timestamps were returned.');
+
+  if (!lines.length) {
+    throw new Error('LRCLIB returned synchronized lyrics, but EST could not parse usable timestamps.');
+  }
+
+  const matchedTitle = String(selected.trackName ?? selected.name ?? cleanTitle).trim();
+  const matchedArtist = String(selected.artistName ?? cleanArtist).trim();
+  const sourceId = selected.id != null ? ` #${selected.id}` : '';
 
   return {
     lines,
-    source: String(data.source || data.provider || url.hostname || 'configured-provider').slice(0, 80),
+    source: `LRCLIB${sourceId}`,
     automatic: true,
+    provider: 'LRCLIB',
+    match: {
+      id: selected.id ?? null,
+      title: matchedTitle,
+      artist: matchedArtist,
+      album: selected.albumName ?? null,
+      duration: Number.isFinite(Number(selected.duration)) ? Number(selected.duration) : null,
+    },
   };
 }
