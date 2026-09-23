@@ -28,6 +28,18 @@ async function prepareYoutubeCookies(workDir) {
       throw new Error('YOUTUBE_COOKIES_B64 decoded to an empty file.');
     }
 
+    const cookieText = decoded.toString('utf8');
+    if (!/Netscape HTTP Cookie File/i.test(cookieText)) {
+      throw new Error(
+        'YOUTUBE_COOKIES_B64 decoded successfully, but it is not a Netscape cookies.txt export.'
+      );
+    }
+    if (!/(^|\n)[^\n]*(youtube\.com|google\.com)[^\n]*\t/i.test(cookieText)) {
+      throw new Error(
+        'The cookies.txt export does not appear to contain YouTube/Google cookies. Re-export while logged into YouTube.'
+      );
+    }
+
     const cookieFile = path.join(workDir, 'youtube-cookies.txt');
     await fs.writeFile(cookieFile, decoded, { mode: 0o600 });
     return cookieFile;
@@ -49,8 +61,25 @@ function cookieArgs(cookieFile) {
   return cookieFile ? ['--cookies', cookieFile] : [];
 }
 
+// YouTube increasingly serves datacenter hosts a browser verification page.
+// yt-dlp supports browser TLS/header impersonation when curl-cffi is installed.
+// This does not replace login cookies; it makes the Railway request resemble a
+// normal Chrome request while still using the user's authorized cookie file.
+function youtubeBrowserArgs() {
+  const target = String(process.env.YOUTUBE_IMPERSONATE || 'chrome').trim();
+  return target ? ['--impersonate', target] : [];
+}
+
 function makeYoutubeError(err, hasCookies) {
   const message = err?.message || String(err);
+
+  if (/the page needs to be reloaded/i.test(message)) {
+    return new Error(
+      hasCookies
+        ? 'YouTube accepted the configured cookie file but still rejected Railway with a browser verification challenge. EST tried Chrome browser impersonation. If this continues after this hotfix, use Video Upload for this song because YouTube is blocking the Railway datacenter session.'
+        : 'YouTube rejected Railway with a browser verification challenge. Configure YOUTUBE_COOKIES_B64 and retry.'
+    );
+  }
 
   if (/sign in to confirm you.?re not a bot/i.test(message)
       || /use --cookies-from-browser/i.test(message)
@@ -188,6 +217,7 @@ export async function downloadYoutubeKaraoke({
 
   const cookieFile = await prepareYoutubeCookies(workDir);
   const authArgs = cookieArgs(cookieFile);
+  const browserArgs = youtubeBrowserArgs();
 
   const maxDuration = Math.max(
     60,
@@ -201,6 +231,7 @@ export async function downloadYoutubeKaraoke({
     metadataResult = await runCapture(python, [
       '-m', 'yt_dlp',
       ...authArgs,
+      ...browserArgs,
       '--dump-single-json',
       '--skip-download',
       '--no-playlist',
@@ -237,6 +268,7 @@ export async function downloadYoutubeKaraoke({
     await runCapture(python, [
       '-m', 'yt_dlp',
       ...authArgs,
+      ...browserArgs,
       '--no-playlist',
       '--no-warnings',
       '--no-part',
@@ -317,6 +349,7 @@ export async function downloadYoutubeReferenceAudio({
 
   const cookieFile = await prepareYoutubeCookies(workDir);
   const authArgs = cookieArgs(cookieFile);
+  const browserArgs = youtubeBrowserArgs();
   const maxDuration = Math.max(60, Number(process.env.YOUTUBE_REFERENCE_MAX_DURATION_SECONDS || 900));
 
   let metadataResult;
@@ -324,6 +357,7 @@ export async function downloadYoutubeReferenceAudio({
     metadataResult = await runCapture(python, [
       '-m', 'yt_dlp',
       ...authArgs,
+      ...browserArgs,
       '--dump-single-json',
       '--skip-download',
       '--no-playlist',
@@ -353,6 +387,7 @@ export async function downloadYoutubeReferenceAudio({
     await runCapture(python, [
       '-m', 'yt_dlp',
       ...authArgs,
+      ...browserArgs,
       '--no-playlist',
       '--no-warnings',
       '--no-part',
