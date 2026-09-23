@@ -11,6 +11,66 @@ const ALLOWED_YOUTUBE_HOSTS = new Set([
   'youtu.be',
 ]);
 
+
+async function prepareYoutubeCookies(workDir) {
+  const encoded = String(process.env.YOUTUBE_COOKIES_B64 || '').trim();
+  const configuredPath = String(process.env.YOUTUBE_COOKIES_FILE || '').trim();
+
+  if (encoded) {
+    let decoded;
+    try {
+      decoded = Buffer.from(encoded, 'base64');
+    } catch {
+      throw new Error('YOUTUBE_COOKIES_B64 is not valid base64.');
+    }
+
+    if (!decoded.length) {
+      throw new Error('YOUTUBE_COOKIES_B64 decoded to an empty file.');
+    }
+
+    const cookieFile = path.join(workDir, 'youtube-cookies.txt');
+    await fs.writeFile(cookieFile, decoded, { mode: 0o600 });
+    return cookieFile;
+  }
+
+  if (configuredPath) {
+    try {
+      await fs.access(configuredPath);
+      return configuredPath;
+    } catch {
+      throw new Error(`YOUTUBE_COOKIES_FILE does not exist: ${configuredPath}`);
+    }
+  }
+
+  return null;
+}
+
+function cookieArgs(cookieFile) {
+  return cookieFile ? ['--cookies', cookieFile] : [];
+}
+
+function makeYoutubeError(err, hasCookies) {
+  const message = err?.message || String(err);
+
+  if (/sign in to confirm you.?re not a bot/i.test(message)
+      || /use --cookies-from-browser/i.test(message)
+      || /authentication/i.test(message)) {
+    if (hasCookies) {
+      return new Error(
+        'YouTube rejected the configured cookies. Refresh YOUTUBE_COOKIES_B64 in Railway with a new cookies.txt export, then retry.'
+      );
+    }
+
+    return new Error(
+      'YouTube blocked Railway anonymous access and requested sign-in. ' +
+      'Add YOUTUBE_COOKIES_B64 as a private Railway Variable, then retry. ' +
+      'Do not put the cookies in GitHub.'
+    );
+  }
+
+  return err;
+}
+
 function safeYoutubeUrl(value) {
   let parsed;
   try {
@@ -112,6 +172,9 @@ export async function downloadYoutubeKaraoke({
   await fs.rm(workDir, { recursive: true, force: true });
   await fs.mkdir(workDir, { recursive: true });
 
+  const cookieFile = await prepareYoutubeCookies(workDir);
+  const authArgs = cookieArgs(cookieFile);
+
   const maxDuration = Math.max(
     60,
     Number(process.env.YOUTUBE_MAX_DURATION_SECONDS || 900),
@@ -119,17 +182,23 @@ export async function downloadYoutubeKaraoke({
 
   // Metadata first so one pasted URL cannot unexpectedly download a playlist
   // or an extremely long video.
-  const metadataResult = await runCapture(python, [
-    '-m', 'yt_dlp',
-    '--dump-single-json',
-    '--skip-download',
-    '--no-playlist',
-    '--no-warnings',
-    safeUrl,
-  ], {
-    cwd: workDir,
-    timeoutMs: 2 * 60 * 1000,
-  });
+  let metadataResult;
+  try {
+    metadataResult = await runCapture(python, [
+      '-m', 'yt_dlp',
+      ...authArgs,
+      '--dump-single-json',
+      '--skip-download',
+      '--no-playlist',
+      '--no-warnings',
+      safeUrl,
+    ], {
+      cwd: workDir,
+      timeoutMs: 2 * 60 * 1000,
+    });
+  } catch (err) {
+    throw makeYoutubeError(err, Boolean(cookieFile));
+  }
 
   let metadata;
   try {
@@ -150,19 +219,24 @@ export async function downloadYoutubeKaraoke({
 
   // 720p is plenty for karaoke-text/highlight analysis and greatly reduces
   // Railway bandwidth, disk usage, and frame-analysis CPU cost.
-  await runCapture(python, [
-    '-m', 'yt_dlp',
-    '--no-playlist',
-    '--no-warnings',
-    '--no-part',
-    '-f', 'bv*[height<=720]+ba/b[height<=720]/b',
-    '--merge-output-format', 'mp4',
-    '-o', path.join(workDir, 'source.%(ext)s'),
-    safeUrl,
-  ], {
-    cwd: workDir,
-    timeoutMs: 12 * 60 * 1000,
-  });
+  try {
+    await runCapture(python, [
+      '-m', 'yt_dlp',
+      ...authArgs,
+      '--no-playlist',
+      '--no-warnings',
+      '--no-part',
+      '-f', 'bv*[height<=720]+ba/b[height<=720]/b',
+      '--merge-output-format', 'mp4',
+      '-o', path.join(workDir, 'source.%(ext)s'),
+      safeUrl,
+    ], {
+      cwd: workDir,
+      timeoutMs: 12 * 60 * 1000,
+    });
+  } catch (err) {
+    throw makeYoutubeError(err, Boolean(cookieFile));
+  }
 
   const videoFile = await findDownloadedVideo(workDir);
   if (!videoFile) {
@@ -237,8 +311,8 @@ export async function analyzeKaraokeVideoSync({
     script,
     '--video', videoFile,
     '--lyrics', lyricsFile,
-    '--sample-fps', String(process.env.VIDEO_SYNC_SAMPLE_FPS || 4),
-    '--max-seconds', String(process.env.VIDEO_SYNC_MAX_SECONDS || 180),
+    '--sample-fps', String(process.env.VIDEO_SYNC_SAMPLE_FPS || 8),
+    '--max-seconds', String(process.env.VIDEO_SYNC_MAX_SECONDS || 240),
   ], {
     cwd: workDir,
     timeoutMs: 8 * 60 * 1000,
